@@ -8,9 +8,6 @@
 #define WIDTH 640
 #define HEIGHT 480
 
-#define W 32
-#define H 32
-
 #include "tilemap.hpp"
 #include "astar.hpp"
 
@@ -20,7 +17,7 @@ class AstarDemo : public olc::PixelGameEngine
     public:
         AstarDemo()
         {
-            // Name you application
+            // Name your application
             sAppName = "AstarDemo";
         }
 
@@ -33,13 +30,10 @@ class AstarDemo : public olc::PixelGameEngine
         const olc::vf2d noscale = {1.f, 1.f};
 
         std::shared_ptr<AStar> astar {nullptr};
-        std::shared_ptr<Tile> tile1 {nullptr};
         TileMap tileMap;
 
         uint8_t layerBG;
         uint8_t layerGame;
-
-        bool BackgroundDrawn {false};
 
     public:
         bool OnUserCreate() override
@@ -55,8 +49,8 @@ class AstarDemo : public olc::PixelGameEngine
                 exit(1);
             }
 
-            tile1 = std::make_shared<Tile>(this, rHighlight, olc::vf2d({32*5.f, 32*5.f}), .1f);
-            tileMap.AddTile(tile1);
+            tileMap.pge = static_cast<PixelGameEngine*>(this);
+            tileMap.LoadTerrainMap();
 
             // Clear the top layer so we can later draw to layers underneath
             SetPixelMode(olc::Pixel::MASK);
@@ -127,10 +121,6 @@ class AstarDemo : public olc::PixelGameEngine
                 SetPixelMode(olc::Pixel::NORMAL);
             }
 
-            //DrawDecal(tile1->GetPos(), tile1->GetDecal());
-            //tile1->Draw();
-            tileMap.Draw();
-
             return true;
         }
 
@@ -138,16 +128,21 @@ class AstarDemo : public olc::PixelGameEngine
         {
             SetDrawTarget(layerBG);
             SetPixelMode(olc::Pixel::MASK);
+
+            // Default background color
             FillRect(0, 0, WIDTH, HEIGHT, olc::VERY_DARK_GREY);
 
+            // Draw the world terrain map
+            tileMap.Draw();
+
             // Draw Vertical Grid
-            for (int i = 0; i < WIDTH / 32; i++) {
-                    DrawLine(i * 32, 0, i * 32, HEIGHT, olc::WHITE);
+            for (int i = 0; i < WIDTH / W; i++) {
+                    DrawLine(i * W, 0, i * W, HEIGHT, olc::WHITE);
             }
 
             // Draw Horizontal Grid
-            for (int i = 0; i < HEIGHT / 32; i++) {
-                    DrawLine(0, i * 32, WIDTH, i * 32, olc::WHITE);
+            for (int i = 0; i < HEIGHT / H; i++) {
+                    DrawLine(0, i * H, WIDTH, i * H, olc::WHITE);
             }
         }
 };
