@@ -11,10 +11,10 @@
 #include "olcPixelGameEngine.h"
 
 #ifndef W
-#define W 64
+#define W 32
 #endif
 #ifndef H
-#define H 64
+#define H 32
 #endif
 
 static std::array<olc::Pixel, 18> COLORS {

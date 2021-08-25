@@ -3,40 +3,40 @@
 # Command: make planner-demo
 #############################################################################
 
+###### Configuration
+
 CXX = g++
+DEBUG_LEVEL = 1
+
+
+##### Setup Flags
+
 CXXFLAGS = -std=c++2a -fPIC -Wno-unknown-pragmas #-fstack-protector-all
 LIBS = -lX11 -lGL -lpthread -lpng -lstdc++fs
-# WARN_ON = -Wall -Wextra -Wconversion
-# WARN_OFF = -Wno-narrowing
-# 
-# RELEASE_FLAGS = -Ofast
+WARN_ON = -Wall -Wextra -Wconversion
+WARN_OFF = -Wno-narrowing
 
-# ifeq ($(strip $(WARNINGS)),YES)
-# 	CXXFLAGS += $(WARN_ON)
-# else
-# 	CXXFLAGS += $(WARN_OFF) 
-# endif
-# 
-# ifeq ($(strip $(DEBUG_LEVEL)),1)
-# 	CCFLAGS += -g -O3 -D_NVTX 
-# 	CXXFLAGS += -g -O3 -D_NVTX
-# else 
-# ifeq ($(strip $(DEBUG_LEVEL)),2)
-# 	CCFLAGS += -g -O0 -D_NVTX
-# 	CXXFLAGS += -g -O0 -D_NVTX
-# else
-# 	CCFLAGS += $(RELEASE_FLAGS) -D_NVTX
-# 	CXXFLAGS += $(RELEASE_FLAGS) -D_NVTX
-# endif
-# endif
-# 
-# # Setting OpenMP flags
-# ifeq ($(strip $(OPENMP)),YES)
-# 	CXXFLAGS += -fopenmp
-# 	CUFLAGS += -Xcompiler -fopenmp
-# 	CCFLAGS += -fopenmp
-# 	FLAGS += -D_OMP
-# endif
+DEBUG_FLAGS = -g
+RELEASE_FLAGS = -Ofast
+
+ifeq ($(strip $(WARNINGS)),YES)
+	CXXFLAGS += $(WARN_ON)
+else
+	CXXFLAGS += $(WARN_OFF) 
+endif
+
+ifeq ($(strip $(DEBUG_LEVEL)),1)
+	CCFLAGS += $(DEBUG_FLAGS) -O3
+	CXXFLAGS += $(DEBUG_FLAGS) -O3
+else 
+ifeq ($(strip $(DEBUG_LEVEL)),2)
+	CCFLAGS += $(DEBUG_FLAGS) -O0
+	CXXFLAGS += $(DEBUG_FLAGS) -O0
+else
+	CCFLAGS += $(RELEASE_FLAGS)
+	CXXFLAGS += $(RELEASE_FLAGS)
+endif
+endif
 
 
 ####### Directories
@@ -60,7 +60,7 @@ $(TARGET): $(OBJS)
 	@mkdir -p $(BINDIR)
 	$(CXX) $(INCS) $(OBJS) $(LIBS) $(CXXFLAGS) -o $(BINDIR)/$(TARGET)
 
-$(OBJDIR)/%.o: src/%.cpp
+$(OBJDIR)/%.o: src/%.cpp include/%.hpp
 	@mkdir -p $(OBJDIR)
 	$(CXX) $(INCS) -c -o $@ $< $(FLAGS) $(CXXFLAGS)
 
