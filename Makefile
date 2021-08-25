@@ -42,28 +42,31 @@ LIBS = -lX11 -lGL -lpthread -lpng -lstdc++fs
 ####### Directories
 
 SRCDIR = $(CURDIR)/src
-OBJDIR = $(CURDIR)/bin
+OBJDIR = $(CURDIR)/obj
 BINDIR = $(CURDIR)/bin
-INCS  += -I$(CURDIR)/include
+INCS  += -I$(CURDIR)/include -I/home/jacob/.local/include/c++/11.2.1/
 
 ####### Files
 
-OBJS = 	$(OBJDIR)/main.o
+OBJS = 	$(OBJDIR)/main.o \
+	$(OBJDIR)/astar.o
+
 
 TARGET = planner-demo
 
 ####### Build rules
 
 $(TARGET): $(OBJS)
+	@mkdir -p $(BINDIR)
 	$(CXX) $(INCS) $(OBJS) $(LIBS) $(CXXFLAGS) -o $(BINDIR)/$(TARGET)
 
-$(BINDIR)/%.o: src/%.cpp
-	@mkdir -p $(BINDIR)
+$(OBJDIR)/%.o: src/%.cpp
+	@mkdir -p $(OBJDIR)
 	$(CXX) $(INCS) -c -o $@ $< $(FLAGS) $(CXXFLAGS)
 
 ####### Phony Targets
 
-# .PHONY: clean
-# clean:
-# 	cd obj && rm -f *.o && cd .. && rm -f $(BINDIR)/$(TARGET)
+.PHONY: clean
+clean:
+	cd obj && rm -f *.o && cd .. && rm -f $(BINDIR)/$(TARGET)
 

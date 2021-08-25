@@ -24,12 +24,13 @@ class AstarDemo : public olc::PixelGameEngine
         olc::Renderable rHighlight;
 
         olc::vi2d vGoalIJ;
+        olc::vi2d vStartIJ;
         olc::vf2d vGoalPos;
         bool isGoalSet {false};
 
         const olc::vf2d noscale = {1.f, 1.f};
 
-        std::shared_ptr<AStar> astar {nullptr};
+        AStar astar;
         TileMap tileMap;
 
         uint8_t layerBG;
@@ -49,7 +50,7 @@ class AstarDemo : public olc::PixelGameEngine
                 exit(1);
             }
 
-            tileMap.pge = static_cast<PixelGameEngine*>(this);
+            tileMap.SetPGE(static_cast<PixelGameEngine*>(this));
             tileMap.LoadTerrainMap();
 
             // Clear the top layer so we can later draw to layers underneath
@@ -70,6 +71,9 @@ class AstarDemo : public olc::PixelGameEngine
 
             DrawBackground();
 
+            /** Setup the path-planning objects */
+            astar.SetTerrainMap(tileMap);
+
             return true;
         }
 
@@ -83,20 +87,29 @@ class AstarDemo : public olc::PixelGameEngine
             olc::vi2d mouse = GetMousePos();
 
             // Get the map tile at the mouse location, and its top-left coords
-            int32_t tile_i = mouse.x / W;
-            int32_t tile_j = mouse.y / H;
-            float tile_x = static_cast<float>(tile_i * W);
-            float tile_y = static_cast<float>(tile_j * H);
+            // The current tile will always be used as the start location
+            olc::vi2d tile_ij = {mouse.x / W, mouse.y / H};
+            olc::vf2d tile_xy = {float(tile_ij.x * W), float(tile_ij.y * H)};
+
+            bool newStart = false;
+            if (tile_ij != vStartIJ) {
+                newStart = true;
+                vStartIJ = tile_ij;
+            }
 
             // Set the 'goal tile' on any left-click
             // When clicking on the already-set goal tile, un-set it 
+            bool newGoal = false;
             if (GetMouse(0).bPressed) {
-                if (isGoalSet && vGoalIJ == olc::vi2d({tile_i, tile_j})) {
+                if (isGoalSet && vGoalIJ == tile_ij) {
                     isGoalSet = false;
 
                 } else {
-                    vGoalIJ = {tile_i, tile_j};
-                    vGoalPos = {tile_x, tile_y};
+                    if (tile_ij != vGoalIJ) {
+                        newGoal = true;
+                    }
+                    vGoalIJ = tile_ij;
+                    vGoalPos = tile_xy;
                     isGoalSet = true;
                 }
             }
@@ -105,13 +118,13 @@ class AstarDemo : public olc::PixelGameEngine
             std::stringstream ss;
             ss << "X: " << mouse.x << ", Y: " << mouse.y;
             ss << std::endl << std::endl;
-            ss << "IX: " << tile_i << ", IY: " << tile_y;
+            ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
             std::string status = ss.str();
             DrawStringDecal({5, 5}, status);
 
             // Highlight the map tile under the mouse
             SetPixelMode(olc::Pixel::ALPHA);
-            DrawDecal({tile_x, tile_y}, rHighlight.Decal(), noscale, olc::WHITE);
+            DrawDecal(tile_xy, rHighlight.Decal(), noscale, olc::WHITE);
             SetPixelMode(olc::Pixel::NORMAL);
 
             // If the goal tile has been set, display it
@@ -120,6 +133,17 @@ class AstarDemo : public olc::PixelGameEngine
                 DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
                 SetPixelMode(olc::Pixel::NORMAL);
             }
+
+            // If the goal tile has been set, display the shortest path
+            
+            if (isGoalSet && (newStart || newGoal)) {
+                astar.ComputePath(tile_ij, vGoalIJ); 
+
+                SetPixelMode(olc::Pixel::ALPHA);
+                /// TODO: Draw the output from A*
+                SetPixelMode(olc::Pixel::NORMAL);
+            }
+            
 
             return true;
         }

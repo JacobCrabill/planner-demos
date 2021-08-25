@@ -10,8 +10,12 @@
 
 #include "olcPixelGameEngine.h"
 
-#define W 32
-#define H 32
+#ifndef W
+#define W 64
+#endif
+#ifndef H
+#define H 64
+#endif
 
 static std::array<olc::Pixel, 18> COLORS {
     olc::VERY_DARK_GREY, olc::VERY_DARK_RED, olc::VERY_DARK_YELLOW,
