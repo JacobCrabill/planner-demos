@@ -85,14 +85,6 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         }
     }
 
-    // Display the screen and map coordinates of the mouse
-    std::stringstream ss;
-    ss << "X: " << mouse.x << ", Y: " << mouse.y;
-    ss << std::endl << std::endl;
-    ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
-    std::string status = ss.str();
-    DrawStringDecal({5, 5}, status);
-
     // Highlight the map tile under the mouse
     SetPixelMode(olc::Pixel::ALPHA);
     DrawDecal(tile_xy, rHighlight.Decal(), noscale, olc::WHITE);
@@ -108,13 +100,33 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     // If the goal tile has been set, display the shortest path
     
     if (isGoalSet && (newStart || newGoal)) {
-        astar.ComputePath(tile_ij, vGoalIJ); 
+        havePath = astar.ComputePath(tile_ij, vGoalIJ); 
+    }
 
+    float cost = 0.f;
+    if (havePath) {
+        auto vPath = astar.GetPath();
+        cost = astar.GetPathCost();
+
+        /// Draw the output from A*
         SetPixelMode(olc::Pixel::ALPHA);
-        /// TODO: Draw the output from A*
+        for (auto& ij : vPath) {
+            olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
+            DrawDecal(xy, rHighlight.Decal(), noscale, olc::MAGENTA);
+        }
         SetPixelMode(olc::Pixel::NORMAL);
     }
-    
+
+    // Display the screen and map coordinates of the mouse
+    std::stringstream ss;
+    ss << "X: " << mouse.x << ", Y: " << mouse.y;
+    ss << std::endl << std::endl;
+    ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
+    ss << std::endl << std::endl;
+    ss << "Path Cost: " << cost;
+    std::string status = ss.str();
+    DrawStringDecal({5, 5}, status);
+
 
     return true;
 }

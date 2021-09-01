@@ -19,6 +19,7 @@ struct ATile
     ATile() = default;
 
     olc::vi2d loc {0, 0};
+    int idx {0};
 
     float f {FLT_MAX};
     float g {FLT_MAX};
@@ -30,6 +31,16 @@ struct ATile
 
     enum State {CLOSED, OPEN, VISITED};
     State state {CLOSED};
+
+    std::tuple<float, int, int> GetTuple() {
+        return std::make_tuple(f, counter, idx);
+    }
+
+    bool operator<(const ATile& b) {
+        if (f == b.f)
+            return counter < b.counter;
+        return f < b.f;
+    }
 };
 
 class AStar
@@ -41,6 +52,9 @@ public:
 
     bool ComputePath(olc::vi2d start, olc::vi2d goal);
 
+    std::vector<olc::vi2d> GetPath() { return _final_path; }
+    float GetPathCost() { return _path_cost; }
+
 private:
     TileMap* _map {nullptr};
 
@@ -50,6 +64,9 @@ private:
     std::vector<float> _fScore;
     
     bool _goalReached {false};
+    float _path_cost {0.f};
+
+    std::vector<olc::vi2d> _final_path;
 
     // Heuristic function (Manhattan distance, or Euclidean distance)
     float Hval(olc::vi2d t1, olc::vi2d t2);

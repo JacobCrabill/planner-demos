@@ -23,11 +23,13 @@ public:
     olc::vi2d vStartIJ;
     olc::vf2d vGoalPos;
     bool isGoalSet {false};
+    bool havePath {false};
 
     const olc::vf2d noscale = {1.f, 1.f};
 
     AStar astar;
     TileMap tileMap;
+
 
     uint8_t layerBG;
     uint8_t layerGame;

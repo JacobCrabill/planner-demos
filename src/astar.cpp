@@ -11,6 +11,8 @@
 #include <cassert>
 #include <map>
 #include <set>
+#include <unordered_set>
+#include <unistd.h>
 
 float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
 {
@@ -35,6 +37,7 @@ void AStar::SetTerrainMap(TileMap& map)
         const int i = n % _dims.x;
         const int j = n / _dims.y;
         tile.loc = {i, j};
+        tile.idx = n;
         tile.effort = 0.f; /// TODO: Assigned based on terrain type
 
         /* Setup neighbors list */
@@ -71,64 +74,79 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
     int gInd = goal.y * _dims.x + goal.x;
     std::cout << "Start: " << sInd << " | Goal: " << gInd << std::endl;
 
+    // Reset all 'f' and 'g' scores for the A* alg.
     for (auto& tile : _tiles) {
-        // Reset the 'f' and 'g' scores for the A* alg.
         tile.f = FLT_MAX;
         tile.g = FLT_MAX;
     }
 
+    // Start the algorithm with the start tile
     _tiles[sInd].g = 0;
     _tiles[sInd].f = Hval(start, goal);
 
-    // Setup the priority queue
+    // Setup the priority queue to track the active/'open' tiles
+    // The compare function shall return if t1 is less than t2
     auto tcomp = [](ATile* t1, ATile* t2) {
+        if (t1 == t2)
+            return false;
+
         if (t1->f == t2->f) {
             return t1->counter < t2->counter;
         }
         return t1->f < t2->f;
     };
 
-    //std::priority_queue<ATile*, std::vector<ATile*>, decltype(tcomp)> pqueue(tcomp);
-    std::set<ATile*, decltype(tcomp)> pqueue(tcomp);
+    std::set<std::tuple<float, int, int> > pqueue;
+    std::set<int> open_set;
+    pqueue.insert(_tiles[sInd].GetTuple());
+    open_set.insert(sInd);
 
-    pqueue.insert(&_tiles[sInd]);
-
-    std::map<ATile*, ATile*> tree;
+    std::map<int, int> tree;
     std::set<ATile*> open_set_hash;
     int counter = 0;
 
     while (!pqueue.empty()) {
-        auto current = *(pqueue.begin());
-        pqueue.erase(current);
+        auto tup = *(pqueue.begin());
+        const int id = std::get<2>(tup);
+        pqueue.erase(pqueue.begin());
+        open_set.erase(id);
+        ATile& current = _tiles[id];
         
-        if (current->loc == goal) {
-            std::cout << "Path found!" << std::endl;
+        // Check to see if we've reached our destination 
+        if (current.loc == goal) {
+            /* --- A Path Was Found --- */
+            _path_cost = current.g;
+
             // Save the path to be drawn later
-            auto tmp = current;
-            while (tree.count(tmp)) {
-                auto loc = tmp->loc;
-                std::cout << "[" << loc.x << "," << loc.y << "]" << std::endl;
-                tmp = tree[tmp];
+            _final_path.clear();
+            int idx = current.idx;
+            while (tree.count(idx)) {
+                auto loc = _tiles[idx].loc;
+                _final_path.insert(_final_path.begin(), loc);
+                idx = tree[idx];
             }
+
             return true;
         }
 
-        for (auto neighbor : current->neighbors) {
+        for (auto neighbor : current.neighbors) {
             // Get the cost to traverse this neighbor
-            float tmp_g = current->g + 1 + neighbor->effort;
+            float tmp_g = current.g + 1 + neighbor->effort;
 
             if (tmp_g < neighbor->g) {
                 // If this is the 'best' neighbor so far, update our score
-                tree[neighbor] = current;
+                tree[neighbor->idx] = current.idx;
                 neighbor->g = tmp_g;
                 neighbor->f = tmp_g + Hval(neighbor->loc, goal);
+                const int idx = neighbor->loc.x + neighbor->loc.y * _dims.x;
 
-                if (pqueue.count(neighbor) == 0) {
+                if (open_set.count(idx) == 0) {
                     // Insert the neighbor into our set of spots to check
                     // Note that the 'f' score determines the priority in the queue
                     counter += 1;
                     neighbor->counter = counter;
-                    pqueue.insert(neighbor);
+                    pqueue.insert(neighbor->GetTuple());
+                    open_set.insert(idx);
                     neighbor->state = ATile::State::OPEN;
                 }
             }
