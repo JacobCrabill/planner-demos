@@ -635,6 +635,7 @@ namespace olc
 	{
 	public:
 		Decal(olc::Sprite* spr, bool filter = false);
+                void ReloadSprite(olc::Sprite* spr, bool filter = false);
 		virtual ~Decal();
 		void Update();
 
@@ -662,6 +663,7 @@ namespace olc
 		Renderable() = default;
 		olc::rcode Load(const std::string& sFile, ResourcePack* pack = nullptr, bool filter = false);
 		void Create(uint32_t width, uint32_t height, bool filter = false);
+                olc::rcode UpdateDecal();
 		olc::Decal* Decal() const;
 		olc::Sprite* Sprite() const;
 
@@ -1331,11 +1333,20 @@ namespace olc
 	// O------------------------------------------------------------------------------O
 	Decal::Decal(olc::Sprite* spr, bool filter)
 	{
-		id = -1;
-		if (spr == nullptr) return;
-		sprite = spr;
-		id = renderer->CreateTexture(sprite->width, sprite->height, filter);
-		Update();
+            ReloadSprite(spr, filter);
+	}
+
+        void Decal::ReloadSprite(olc::Sprite* spr, bool filter)
+	{
+                if (spr == nullptr) return;
+                if (id != -1) {
+                        renderer->DeleteTexture(id);
+                        id = -1;
+                }
+
+                sprite = spr;
+                id = renderer->CreateTexture(sprite->width, sprite->height, filter);
+                Update();
 	}
 
 	void Decal::Update()
@@ -1376,6 +1387,17 @@ namespace olc
 			return olc::rcode::NO_FILE;
 		}
 	}
+
+        olc::rcode Renderable::UpdateDecal()
+        {
+                if (pSprite != nullptr)
+                {
+                        pDecal.release();
+			pDecal = std::make_unique<olc::Decal>(pSprite.get());
+			return olc::rcode::OK;
+                }
+                return olc::rcode::FAIL;
+        }
 
 	olc::Decal* Renderable::Decal() const
 	{ return pDecal.get(); }
