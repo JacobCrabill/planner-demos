@@ -61,8 +61,30 @@ class TileMap
 public:
     TileMap() { };
 
+    void LoadTileSet(const std::string& fname)
+    {
+        rAll.Load(fname);
+        tileset.resize(128);
+        int n = 0;
+        for (auto &rTile : tileset) {
+            rTile.Create(32, 32);
+            _pge->SetDrawTarget(rTile.Sprite());
+            const int ox = (n % 16) * 32;
+            const int oy = (n / 16) * 32;
+            _pge->DrawPartialSprite(0, 0, rAll.Sprite(), ox, oy, 32, 32);
+            // Note: Drawing to the sprite of a renderable does not
+            // automatically update the decal
+            rTile.UpdateDecal();
+            n++;
+        }
+        _pge->SetDrawTarget(nullptr);
+
+    }
+
     void LoadTerrainMap()
     {
+        LoadTileSet("resources/lpc-terrains/terrain-v7.png");
+
         std::ifstream f("test.dat", std::ifstream::in);
         
         int32_t nx, ny;
@@ -99,7 +121,14 @@ public:
     void Draw()
     {
         for (auto &T : _map) {
-            T.Draw();
+            //T.Draw();
+        }
+        int n = 0;
+        for (auto &rTile : tileset) {
+            const int ox = (n % 20) * 32;
+            const int oy = (n / 20) * 32;
+            _pge->DrawDecal(olc::vi2d({ox,oy}), rTile.Decal());
+            n++;
         }
     };
 
@@ -114,4 +143,8 @@ private:
     bool bMapLoaded {false};
 
     olc::PixelGameEngine* _pge {nullptr};
+
+    olc::Renderable rAll;
+    olc::Renderable rOne;
+    std::vector<olc::Renderable> tileset;
 };
