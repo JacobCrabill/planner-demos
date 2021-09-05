@@ -14,11 +14,32 @@
 #include <unordered_set>
 #include <unistd.h>
 
-float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
+#define SQRT2 1.41421356f
+
+// Manhattan Distance
+float Manhattan(const olc::vi2d& t1, const olc::vi2d& t2)
 {
     const int dx = abs(t1.x - t2.x);
     const int dy = abs(t1.y - t2.y);
     return static_cast<float>(dx + dy);
+}
+
+// 'Diagonal Distance' (Straight lines and diagonals allowed)
+float Diagonal(const olc::vi2d& t1, const olc::vi2d& t2)
+{
+    // Here we assume we follow a 45deg diagonal,
+    // then a straignt line
+    const int dx = abs(t1.x - t2.x);
+    const int dy = abs(t1.y - t2.y);
+    const int mind = std::min(dx, dy);
+    const int maxd = std::max(dx, dy);
+    return SQRT2 * mind + (maxd - mind);
+}
+
+float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
+{
+    //return Manhattan(t1, t2);
+    return Diagonal(t1, t2);
 }
 
 
@@ -54,8 +75,15 @@ void AStar::SetTerrainMap(TileMap& map)
             // Number of neighors with current alg.
             // TOP, BOTTOM, LEFT, RIGHT
             /// TODO: Allow corners (NN == 8); change HVal()
-            const int NN = 4;
-            int nidx[NN] = {cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1};
+            // const int NN = 4;
+            // int nidx[NN] = {cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1};
+            // T/B/L/R; TL/TR/BL/BR
+            const int NN = 8;
+            int nidx[NN] = {
+                cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1,
+                cidx - _dims.x - 1, cidx - _dims.x + 1,
+                cidx + _dims.x - 1, cidx + _dims.x + 1
+            };
 
             for (int n = 0; n < NN; n++) {
                 const int ni = nidx[n] % _dims.x;
@@ -132,7 +160,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         for (auto nidx : current.neighbors) {
             // Get the cost to traverse this neighbor
             auto& neighbor = _tiles[nidx];
-            float tmp_g = current.g + 1.f + neighbor.effort;
+            float tmp_g = current.g + Hval(current.loc, neighbor.loc) + neighbor.effort;
             /// DEBUGGING
             // printf("n %d (%d,%d): effort %.1f\n",
             //         nidx, neighbor.loc.x, neighbor.loc.y, neighbor.effort);
