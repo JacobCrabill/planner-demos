@@ -26,49 +26,50 @@ void AStar::SetTerrainMap(TileMap& map)
 {
     _map = &map;
 
+    /// TODO / HACK / NOTE: 
+    //  We have an extra row+col of terrain tiles
+    //  in order to fully fill the screen given how
+    //  our map is generated
     _dims = _map->GetDims();
+    _dims.x -= 1;
+    _dims.y -= 1;
 
     // Construct our local copy of the map in a format suitable for the algo.
     // This consists of one "worker thread" per terrain tile
     _tiles.resize(_dims.x * _dims.y);
 
-    int n = 0;
+    int cidx = 0;
     for (auto& tile : _tiles) {
-        const int i = n % _dims.x;
-        const int j = n / _dims.x;
+        const int i = cidx % _dims.x;
+        const int j = cidx / _dims.x;
         tile.loc = {i, j};
-        tile.idx = n;
-        tile.effort = 1.f; /// TODO: Assigned based on terrain type
+        tile.idx = cidx;
+        tile.effort = _map->GetEffortAt(i, j);
+
+        /// DEBUGGING printf("(%d, %d): Effort %.1f\n", i, j, tile.effort);
 
         /* Setup neighbors list */
-        /// TODO: Check for impassible barriers; tag and ignore
+        if (tile.effort >= 0) {
 
-        // TOP - subtract one row
-        if (j > 0) {
-            //ATile* tn = &_tiles[n - _dims.x];
-            //tile.neighbors.push_back(tn);
-            tile.neighbors.push_back(n - _dims.x);
-        }
-        // BOTTOM - add one row
-        if (j < _dims.y - 1) {
-            //ATile* tn = &_tiles[n + _dims.x];
-            //tile.neighbors.push_back(tn);
-            tile.neighbors.push_back(n + _dims.x);
-        }
-        // LEFT - subtract one column
-        if (i > 0) {
-            //ATile* tn = &_tiles[n - 1];
-            //tile.neighbors.push_back(tn);
-            tile.neighbors.push_back(n - 1);
-        }
-        // RIGHT - add one column
-        if (i < _dims.x - 1) {
-            //ATile* tn = &_tiles[n + 1];
-            //tile.neighbors.push_back(tn);
-            tile.neighbors.push_back(n + 1);
+            // Number of neighors with current alg.
+            // TOP, BOTTOM, LEFT, RIGHT
+            /// TODO: Allow corners (NN == 8); change HVal()
+            const int NN = 4;
+            int nidx[NN] = {cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1};
+
+            for (int n = 0; n < NN; n++) {
+                const int ni = nidx[n] % _dims.x;
+                const int nj = nidx[n] / _dims.x;
+                if (_map->GetEffortAt(ni, nj) >= 0) {
+                    tile.neighbors.push_back(nidx[n]);
+                }
+            }
+
+        } else {
+            // Barrier / Impassable
         }
 
-        n++;
+        cidx++;
     }
 }
 
@@ -76,6 +77,13 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
 {
     int sInd = start.y * _dims.x + start.x;
     int gInd = goal.y * _dims.x + goal.x;
+
+    if (sInd < 0 || sInd > _tiles.size()) return false;
+    if (gInd < 0 || gInd > _tiles.size()) return false;
+
+    /// DEBUGGING
+    // printf("===Begin A*===\nStart/Goal: (%d,%d), (%d,%d)\n",
+    //         start.x, start.y, goal.x, goal.y);
 
     // Reset all 'f' and 'g' scores for the A* alg.
     for (auto& tile : _tiles) {
@@ -94,7 +102,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
     open_set.insert(sInd);
 
     std::map<int, int> tree;
-    std::set<ATile*> open_set_hash;
     int counter = 0;
 
     while (!pqueue.empty()) {
@@ -103,6 +110,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         pqueue.erase(pqueue.begin());
         open_set.erase(id);
         ATile& current = _tiles[id];
+        //printf("--current: %d (%d,%d), %.1f\n", id, current.loc.x, current.loc.y, current.effort);
         
         // Check to see if we've reached our destination 
         if (current.loc == goal) {
@@ -124,7 +132,10 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         for (auto nidx : current.neighbors) {
             // Get the cost to traverse this neighbor
             auto& neighbor = _tiles[nidx];
-            float tmp_g = current.g + 1 + neighbor.effort;
+            float tmp_g = current.g + 1.f + neighbor.effort;
+            /// DEBUGGING
+            // printf("n %d (%d,%d): effort %.1f\n",
+            //         nidx, neighbor.loc.x, neighbor.loc.y, neighbor.effort);
 
             if (tmp_g < neighbor.g) {
                 // If this is the 'best' neighbor so far, update our score

@@ -106,6 +106,11 @@ public:
 
     void Draw();
 
+    TERRAIN_TYPE GetTerrainAt(int ix, int iy);
+    TERRAIN_TYPE GetTerrainAt(int idx);
+    float GetEffortAt(int ix, int iy);
+    float GetEffortAt(int idx);
+
 private:
     std::vector<Tile> _map;
 
@@ -121,8 +126,10 @@ private:
 
     // Map from the topology of the terrain input to a terrain tile
     std::map<std::array<int, 4>, std::array<int, 2>> topoMap;
+    std::map<TERRAIN_TYPE, float> teffort {
+        {GRASS, 3.f}, {WATER, -1.f}, {DIRT, 10.f}, {GRAVEL, 20.f}, {PAVERS, 1.f}
+    };
 
     // Create a layered sprite for the given layer + neighboring layers
     olc::Sprite* GetEdgeTileFor(int myL, std::array<int, 4> bcs);
-
 };

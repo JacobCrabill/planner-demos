@@ -26,8 +26,8 @@ void Tile::Draw()
             pge->DrawDecal(vScreenPos, dTexture); //->Decal());
         } else {
             // Otherwise draw a simple filled rectangle
-            const int32_t x = vTileCoord.x * W - W/2;
-            const int32_t y = vTileCoord.y * H - H/2;
+            const int32_t x = vTileCoord.x * W;
+            const int32_t y = vTileCoord.y * H;
             pge->FillRect(x, y, W, H, pColor);
         }
     }
@@ -219,11 +219,14 @@ void TileMap::LoadTerrainMap()
     bMapLoaded = true;
     _map.resize(n_grid);
     for (int32_t i = 0; i < n_grid; i++) {
-        _map[i].pColor = COLORS[texmap[i]];
-        _map[i].layer = texmap[i];
-        _map[i].fEffort = float(texmap[i]); /// TODO: Map terrain types to effort
         const int32_t ix = i % _dims.x; // x == column
         const int32_t iy = i / _dims.x; // y == row
+        const int32_t tidx = (ix + 1) + (iy + 1) * nx; // Index in full world input
+        const int layer = texmap[tidx];
+        const TERRAIN_TYPE tt = static_cast<TERRAIN_TYPE>(layers[layer]);
+        _map[i].pColor = COLORS[layer];
+        _map[i].layer = layer;
+        _map[i].fEffort = teffort[tt];
 
         //std::cout << "[" << texmap[i] << ", (" << ix << "," << iy << ")] ";
         //if ((i + 1) % 20 == 0) std::cout << std::endl;
@@ -264,13 +267,6 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
 {
     // Returns a sprite created by layering the appropriate terrain types into
     // a single sprite, in order
-    //int min_layer = TERRAIN_TYPE::TYPE_COUNT;
-
-    //min_layer = std::min(min_layer, myL);
-    //for (int i = 0; i < 4; i++) {
-    //    min_layer = std::min(min_layer, bcs[i]);
-    //}
-
     auto tIdx = topoMap[bcs];
 
     olc::Sprite* spr = new olc::Sprite(32, 32);
@@ -288,6 +284,32 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
     _pge->SetDrawTarget(nullptr);
 
     return spr;
+}
+
+TERRAIN_TYPE TileMap::GetTerrainAt(int ix, int iy)
+{
+    const int idx = ix + iy * _dims.x;
+    return GetTerrainAt(idx);
+}
+
+TERRAIN_TYPE TileMap::GetTerrainAt(int idx)
+{
+    if (idx < 0 || idx >= _map.size()) return TYPE_COUNT;
+
+    return static_cast<TERRAIN_TYPE>(layers[_map[idx].layer]);
+}
+
+float TileMap::GetEffortAt(int ix, int iy)
+{
+    const int idx = ix + iy * _dims.x;
+    return GetEffortAt(idx);
+}
+
+float TileMap::GetEffortAt(int idx)
+{
+    if (idx < 0 || idx >= _map.size()) return -1.f;
+
+    return _map[idx].fEffort;
 }
 
 void TileMap::Draw()

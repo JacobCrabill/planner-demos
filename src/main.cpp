@@ -8,6 +8,8 @@
 
 #include "main.hpp"
 
+bool gamePaused = false;
+
 bool AstarDemo::OnUserCreate()
 {
     // Called once at the start, so create things here
@@ -62,45 +64,52 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     olc::vi2d tile_ij = {mouse.x / W, mouse.y / H};
     olc::vf2d tile_xy = {float(tile_ij.x * W), float(tile_ij.y * H)};
 
-    bool newStart = false;
-    if (tile_ij != vStartIJ) {
-        newStart = true;
-        vStartIJ = tile_ij;
-    }
-
-    // Set the 'goal tile' on any left-click
-    // When clicking on the already-set goal tile, un-set it 
-    bool newGoal = false;
-    if (GetMouse(0).bPressed) {
-        if (isGoalSet && vGoalIJ == tile_ij) {
-            isGoalSet = false;
-
-        } else {
-            if (tile_ij != vGoalIJ) {
-                newGoal = true;
-            }
-            vGoalIJ = tile_ij;
-            vGoalPos = tile_xy;
-            isGoalSet = true;
-        }
-    }
-
     // Highlight the map tile under the mouse
     SetPixelMode(olc::Pixel::ALPHA);
     DrawDecal(tile_xy, rHighlight.Decal(), noscale, olc::WHITE);
     SetPixelMode(olc::Pixel::NORMAL);
 
-    // If the goal tile has been set, display it
-    if (isGoalSet) {
-        SetPixelMode(olc::Pixel::ALPHA);
-        DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
-        SetPixelMode(olc::Pixel::NORMAL);
+    if (GetKey(olc::Key::P).bPressed) {
+        gamePaused = !gamePaused;
     }
 
-    // If the goal tile has been set, display the shortest path
-    
-    if (isGoalSet && (newStart || newGoal)) {
-        havePath = astar.ComputePath(tile_ij, vGoalIJ); 
+    if (!gamePaused) {
+
+        bool newStart = false;
+        if (tile_ij != vStartIJ) {
+            newStart = true;
+            vStartIJ = tile_ij;
+        }
+
+        // Set the 'goal tile' on any left-click
+        // When clicking on the already-set goal tile, un-set it 
+        bool newGoal = false;
+        if (GetMouse(0).bPressed) {
+            if (isGoalSet && vGoalIJ == tile_ij) {
+                isGoalSet = false;
+
+            } else {
+                if (tile_ij != vGoalIJ) {
+                    newGoal = true;
+                }
+                vGoalIJ = tile_ij;
+                vGoalPos = tile_xy;
+                isGoalSet = true;
+            }
+        }
+
+        // If the goal tile has been set, display it
+        if (isGoalSet) {
+            SetPixelMode(olc::Pixel::ALPHA);
+            DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
+            SetPixelMode(olc::Pixel::NORMAL);
+        }
+
+        // If the goal tile has been set, display the shortest path
+        
+        if (isGoalSet && (newStart || newGoal)) {
+            havePath = astar.ComputePath(tile_ij, vGoalIJ); 
+        }
     }
 
     float cost = 0.f;
@@ -124,9 +133,13 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     ss << std::endl << std::endl;
     ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
     ss << std::endl << std::endl;
-    ss << "Path Cost: " << cost;
+    ss << "Terrain Type: " << tileMap.GetTerrainAt(tile_ij.x, tile_ij.y); 
+    ss << ", Effort: " << tileMap.GetEffortAt(tile_ij.x, tile_ij.y);
+    ss << std::endl << std::endl;
+    ss << "Path Cost:   " << cost;
     std::string status = ss.str();
-    DrawStringDecal({5, 5}, status);
+    //DrawStringDecal({5, 5}, status);
+    DrawStringDecal({5, 420}, status);
 
 
     return true;
