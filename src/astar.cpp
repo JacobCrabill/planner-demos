@@ -72,7 +72,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
 {
     int sInd = start.y * _dims.x + start.x;
     int gInd = goal.y * _dims.x + goal.x;
-    std::cout << "Start: " << sInd << " | Goal: " << gInd << std::endl;
 
     // Reset all 'f' and 'g' scores for the A* alg.
     for (auto& tile : _tiles) {
@@ -85,17 +84,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
     _tiles[sInd].f = Hval(start, goal);
 
     // Setup the priority queue to track the active/'open' tiles
-    // The compare function shall return if t1 is less than t2
-    auto tcomp = [](ATile* t1, ATile* t2) {
-        if (t1 == t2)
-            return false;
-
-        if (t1->f == t2->f) {
-            return t1->counter < t2->counter;
-        }
-        return t1->f < t2->f;
-    };
-
     std::set<std::tuple<float, int, int> > pqueue;
     std::set<int> open_set;
     pqueue.insert(_tiles[sInd].GetTuple());

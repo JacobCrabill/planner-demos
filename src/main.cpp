@@ -109,6 +109,7 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         cost = astar.GetPathCost();
 
         /// Draw the output from A*
+        SetDrawTarget(layerGame);
         SetPixelMode(olc::Pixel::ALPHA);
         for (auto& ij : vPath) {
             olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};

@@ -6,7 +6,7 @@
 ###### Configuration
 
 CXX = g++
-DEBUG_LEVEL = 1
+DEBUG_LEVEL = 2
 
 
 ##### Setup Flags
@@ -44,12 +44,14 @@ endif
 SRCDIR = $(CURDIR)/src
 OBJDIR = $(CURDIR)/obj
 BINDIR = $(CURDIR)/bin
-INCS  += -I$(CURDIR)/include -I/home/jacob/.local/include/c++/11.2.1/
+INCS  += -I$(CURDIR)/include
+# INCS  += -I/home/jacob/.local/include/c++/11.2.1/
 
 ####### Files
 
 OBJS = 	$(OBJDIR)/main.o \
-	$(OBJDIR)/astar.o
+	$(OBJDIR)/astar.o \
+	$(OBJDIR)/tilemap.o
 
 
 TARGET = planner-demo
