@@ -10,6 +10,9 @@
 
 #include "olcPixelGameEngine.h"
 
+#include <cassert>
+#include <random>
+
 #ifndef W
 #define W 32
 #endif
@@ -50,7 +53,32 @@ public:
     olc::Sprite* GetBaseTile();
     olc::Sprite* GetTileAt(int idx);
 
-    int GetBaseIdx() { return 10; }
+    // Allow us to add some variety to the plain regions
+    static int GetRandomBaseTile()
+    {
+        int baseTileIds[4] = {10, 18, 19, 20};
+        int baseTileWgts[4] = {15, 1, 1, 1};
+
+        int wSum = 0;
+        for (int i = 0; i < 4; i++) {
+            wSum += baseTileWgts[i];
+        }
+
+        int r = rand() % wSum;
+        for (int i = 0; i < 4; i++) {
+            if (r < baseTileWgts[i]) {
+                return baseTileIds[i];
+            }
+            r -= baseTileWgts[i];
+        }
+
+        assert("Should not reach here!");
+
+        return baseTileIds[0];
+    }
+
+    static int GetBaseIdx() { return 10; }
+
     int GetOTLIdx() { return 6; }  // Overlay | Top-Left
     int GetOTCIdx() { return 7; }  // Overlay | Top-Center
     int GetOTRIdx() { return 8; }  // Overlay | Top-Right

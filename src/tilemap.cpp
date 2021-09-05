@@ -269,6 +269,13 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
     // a single sprite, in order
     auto tIdx = topoMap[bcs];
 
+    for (auto& t : tIdx) {
+        // Add some spice - randomize all the 'plain' tiles
+        if (t == TileSet::GetBaseIdx()) {
+            t = TileSet::GetRandomBaseTile();
+        }
+    }
+
     olc::Sprite* spr = new olc::Sprite(32, 32);
     _pge->SetPixelMode(olc::Pixel::MASK);
     _pge->SetDrawTarget(spr);
