@@ -30,11 +30,6 @@ struct Tile
     int layer {0};
     olc::Pixel pColor {olc::BLANK};
     
-    // int32_t gridW {32}; // Width of each column in our tile map
-    // int32_t gridH {32}; // Height of each row in our tile map
-    // int32_t tileW {32}; // Width of _this_ tile
-    // int32_t tileH {32}; // Height of _this_ tile
-
     void Draw();
 };
 
@@ -92,6 +87,7 @@ public:
     // Width and height (in px) of each terrain type in the map
     const int TW = 3 * 32;
     const int TH = 7 * 32;
+    const int N_TILES = TW * TH;
 
 private:
     olc::PixelGameEngine* _pge {nullptr};
@@ -148,16 +144,17 @@ private:
     olc::PixelGameEngine* _pge {nullptr};
 
     // Our terrain layers
-    static constexpr int n_layers = 2;
-    const int layers[n_layers] {WATER, GRASS};
-    TileSet* tileSets[n_layers] {nullptr};
+    static constexpr int N_LAYERS = 3;
+    const int layers[N_LAYERS] {WATER, GRASS, PAVERS};
+    TileSet* tileSets[N_LAYERS] {nullptr};
 
     // Map from the topology of the terrain input to a terrain tile
     std::map<std::array<int, 4>, std::array<int, 2>> topoMap;
+    std::map<std::vector<int>, int> topoMap2;
     std::map<TERRAIN_TYPE, float> teffort {
         {GRASS, 3.f}, {WATER, -1.f}, {DIRT, 10.f}, {GRAVEL, 20.f}, {PAVERS, 1.f}
     };
 
-    // Create a layered sprite for the given layer + neighboring layers
-    olc::Sprite* GetEdgeTileFor(int myL, std::array<int, 4> bcs);
+    // Create a layered sprite for the given the topology of our 2x2 region
+    olc::Sprite* GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laymap);
 };

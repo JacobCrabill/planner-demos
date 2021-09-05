@@ -8,8 +8,6 @@
  */
 #include "tilemap.hpp"
 
-#include <unistd.h> /// DEBUGGING
-
 static std::array<olc::Pixel, 18> COLORS {
     olc::VERY_DARK_GREY, olc::VERY_DARK_RED, olc::VERY_DARK_YELLOW,
         olc::VERY_DARK_CYAN, olc::VERY_DARK_BLUE,
@@ -23,7 +21,7 @@ void Tile::Draw()
     if (pge) {
         // Use the supplied texture if we have it
         if (dTexture) {
-            pge->DrawDecal(vScreenPos, dTexture); //->Decal());
+            pge->DrawDecal(vScreenPos, dTexture);
         } else {
             // Otherwise draw a simple filled rectangle
             const int32_t x = vTileCoord.x * W;
@@ -150,29 +148,47 @@ TileMap::TileMap()
      */
 
     // Map each possible boundary condition to an overlay tile
-    topoMap[{1, 1, 1, 1}] = {10, -1};
-    topoMap[{0, 1, 1, 1}] = {5, 14};
-    topoMap[{1, 0, 1, 1}] = {4, 12};
-    topoMap[{1, 1, 0, 1}] = {1, 6};
-    topoMap[{1, 1, 1, 0}] = {2, 8};
-    topoMap[{0, 0, 1, 1}] = {7, 13};
-    topoMap[{1, 0, 0, 1}] = {11, 9};
-    topoMap[{1, 1, 0, 0}] = {13, 7};
-    topoMap[{0, 1, 1, 0}] = {9, 11};
-    topoMap[{0, 1, 0, 1}] = {15, 16};
-    topoMap[{1, 0, 1, 0}] = {16, 15};
-    topoMap[{1, 0, 0, 0}] = {14, 5};
-    topoMap[{0, 1, 0, 0}] = {12, 4};
-    topoMap[{0, 0, 1, 0}] = {6, 1};
-    topoMap[{0, 0, 0, 1}] = {8, 2};
-    topoMap[{0, 0, 0, 0}] = {-1, 10};
+    // topoMap[{1, 1, 1, 1}] = {-1, 10};
+    // topoMap[{0, 1, 1, 1}] = {14,  5};
+    // topoMap[{1, 0, 1, 1}] = {12,  4};
+    // topoMap[{1, 1, 0, 1}] = { 6,  1};
+    // topoMap[{1, 1, 1, 0}] = { 8,  2};
+    // topoMap[{0, 0, 1, 1}] = {13,  7};
+    // topoMap[{1, 0, 0, 1}] = { 9, 11};
+    // topoMap[{1, 1, 0, 0}] = { 7, 13};
+    // topoMap[{0, 1, 1, 0}] = {11,  9};
+    // topoMap[{0, 1, 0, 1}] = {16, 15};
+    // topoMap[{1, 0, 1, 0}] = {15, 16};
+    // topoMap[{1, 0, 0, 0}] = { 5, 14};
+    // topoMap[{0, 1, 0, 0}] = { 4, 12};
+    // topoMap[{0, 0, 1, 0}] = { 1,  6};
+    // topoMap[{0, 0, 0, 1}] = { 2,  8};
+    // topoMap[{0, 0, 0, 0}] = {10, -1};
+
+    // Map it a different way:
+    // For the current terrain type, which of the 4 nodes are my type?
+    topoMap2[{0, 1, 2, 3}] = 10;
+    topoMap2[{1, 2, 3}]    =  5;
+    topoMap2[{0, 2, 3}]    =  4;
+    topoMap2[{0, 1, 3}]    =  1;
+    topoMap2[{0, 1, 2}]    =  2;
+    topoMap2[{2, 3}]       =  7;
+    topoMap2[{0, 3}]       = 11;
+    topoMap2[{0, 1}]       = 13;
+    topoMap2[{1, 2}]       =  9;
+    topoMap2[{1, 3}]       = 15;
+    topoMap2[{0, 2}]       = 16;
+    topoMap2[{0}]          = 14;
+    topoMap2[{1}]          = 12;
+    topoMap2[{2}]          =  6;
+    topoMap2[{3}]          =  8;
 }
 
 void TileMap::LoadTileSet(const std::string& fname)
 {
     olc::Sprite sprMap(fname);
 
-    for (int i = 0; i < n_layers; i++) {
+    for (int i = 0; i < N_LAYERS; i++) {
         tileSets[i] = new TileSet(_pge, &sprMap, layers[i]); 
     }
 }
@@ -201,12 +217,10 @@ void TileMap::LoadTerrainMap()
     while (f >> texmap[n_read]) n_read++;
 
     // Constrain the inputs to be within our layer definitions
-    int n = 0;
-    for (auto& i : texmap) {
-        i = std::min(std::max(0, i), n_layers);
-        n++;
-        printf("%d ", i);
-        if (n % nx == 0) printf("\n");
+    for (int i = 0; i < texmap.size(); i++) {
+        texmap[i] = std::min(std::max(0, texmap[i]), N_LAYERS - 1);
+        printf("%d ", texmap[i]);
+        if ((i+1) % nx == 0) printf("\n");
     }
 
     if (n_read < n_tiles) {
@@ -248,26 +262,47 @@ void TileMap::LoadTerrainMap()
         const int ix = _map[i].vTileCoord.x;
         const int iy = _map[i].vTileCoord.y;
     
+        // Copy the neighborhood
         if (ix < nx && iy < ny) {
             bcs[0] = texmap[ix + (iy * nx)];
             bcs[1] = texmap[ix + 1 + (iy * nx)];
             bcs[2] = texmap[ix + 1 + (iy + 1) * nx];
             bcs[3] = texmap[ix + (iy + 1) * nx];
         }
+        // Create our mapping for the multi-layer tile generation
+        std::array<std::vector<int>, N_LAYERS> laymap;
+        for (int L = 0; L < N_LAYERS; L++) {
+            for (int b = 0; b < 4; b++) {
+                if (bcs[b] == L) {
+                    // If this entry is the current layer, put its index into the map
+                    laymap[L].push_back(b);
+                }
+            }
+        }
 
-        olc::Sprite* tex = GetEdgeTileFor(myL, bcs);
+        olc::Sprite* tex = GetEdgeTileFor(laymap);
         _map[i].dTexture = new olc::Decal(tex);
         _pge->SetDrawTarget(nullptr);
         _pge->DrawDecal({0.f, 0.f}, _map[i].dTexture);
-        usleep(100);
     }
 };
 
-olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
+olc::Sprite* TileMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laymap)
 {
     // Returns a sprite created by layering the appropriate terrain types into
     // a single sprite, in order
-    auto tIdx = topoMap[bcs];
+  
+    // For each available layer, map it's list of indices
+    // to the matching tile index from its tileset
+    // Default to -1 if that layer is unused
+    std::array<int, N_LAYERS> tIdx;
+    for (int L = 0; L < N_LAYERS; L++) {
+        if (laymap[L].size() > 0) {
+            tIdx[L] = topoMap2[laymap[L]];
+        } else {
+            tIdx[L] = -1;
+        }
+    }
 
     for (auto& t : tIdx) {
         // Add some spice - randomize all the 'plain' tiles
@@ -280,14 +315,12 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
     _pge->SetPixelMode(olc::Pixel::MASK);
     _pge->SetDrawTarget(spr);
 
-    /// TODO: Fix layer numbering
-    if (tIdx[1] >= 0 && tIdx[1] < 21) {
-        _pge->DrawSprite(0, 0, tileSets[0]->GetTileAt(tIdx[1]));
+    for (int i = 0; i < N_LAYERS; i++) {
+        if (tIdx[i] >= 0 && tIdx[i] < tileSets[i]->N_TILES) {
+            _pge->DrawSprite(0, 0, tileSets[i]->GetTileAt(tIdx[i]));
+        }
     }
 
-    if (tIdx[0] >= 0 && tIdx[0] < 21) {
-        _pge->DrawSprite(0, 0, tileSets[1]->GetTileAt(tIdx[0]));
-    }
     _pge->SetDrawTarget(nullptr);
 
     return spr;
