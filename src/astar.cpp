@@ -35,33 +35,37 @@ void AStar::SetTerrainMap(TileMap& map)
     int n = 0;
     for (auto& tile : _tiles) {
         const int i = n % _dims.x;
-        const int j = n / _dims.y;
+        const int j = n / _dims.x;
         tile.loc = {i, j};
         tile.idx = n;
-        tile.effort = 0.f; /// TODO: Assigned based on terrain type
+        tile.effort = 1.f; /// TODO: Assigned based on terrain type
 
         /* Setup neighbors list */
         /// TODO: Check for impassible barriers; tag and ignore
 
         // TOP - subtract one row
         if (j > 0) {
-            ATile* tn = &_tiles[n - _dims.x];
-            tile.neighbors.push_back(tn);
+            //ATile* tn = &_tiles[n - _dims.x];
+            //tile.neighbors.push_back(tn);
+            tile.neighbors.push_back(n - _dims.x);
         }
         // BOTTOM - add one row
         if (j < _dims.y - 1) {
-            ATile* tn = &_tiles[n + _dims.x];
-            tile.neighbors.push_back(tn);
+            //ATile* tn = &_tiles[n + _dims.x];
+            //tile.neighbors.push_back(tn);
+            tile.neighbors.push_back(n + _dims.x);
         }
         // LEFT - subtract one column
         if (i > 0) {
-            ATile* tn = &_tiles[n - 1];
-            tile.neighbors.push_back(tn);
+            //ATile* tn = &_tiles[n - 1];
+            //tile.neighbors.push_back(tn);
+            tile.neighbors.push_back(n - 1);
         }
         // RIGHT - add one column
         if (i < _dims.x - 1) {
-            ATile* tn = &_tiles[n + 1];
-            tile.neighbors.push_back(tn);
+            //ATile* tn = &_tiles[n + 1];
+            //tile.neighbors.push_back(tn);
+            tile.neighbors.push_back(n + 1);
         }
 
         n++;
@@ -117,25 +121,26 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
             return true;
         }
 
-        for (auto neighbor : current.neighbors) {
+        for (auto nidx : current.neighbors) {
             // Get the cost to traverse this neighbor
-            float tmp_g = current.g + 1 + neighbor->effort;
+            auto& neighbor = _tiles[nidx];
+            float tmp_g = current.g + 1 + neighbor.effort;
 
-            if (tmp_g < neighbor->g) {
+            if (tmp_g < neighbor.g) {
                 // If this is the 'best' neighbor so far, update our score
-                tree[neighbor->idx] = current.idx;
-                neighbor->g = tmp_g;
-                neighbor->f = tmp_g + Hval(neighbor->loc, goal);
-                const int idx = neighbor->loc.x + neighbor->loc.y * _dims.x;
+                tree[nidx] = current.idx;
+                neighbor.g = tmp_g;
+                neighbor.f = tmp_g + Hval(neighbor.loc, goal);
+                const int idx = neighbor.loc.x + neighbor.loc.y * _dims.x;
 
                 if (open_set.count(idx) == 0) {
                     // Insert the neighbor into our set of spots to check
                     // Note that the 'f' score determines the priority in the queue
                     counter += 1;
-                    neighbor->counter = counter;
-                    pqueue.insert(neighbor->GetTuple());
+                    neighbor.counter = counter;
+                    pqueue.insert(neighbor.GetTuple());
                     open_set.insert(idx);
-                    neighbor->state = ATile::State::OPEN;
+                    neighbor.state = ATile::State::OPEN;
                 }
             }
         }

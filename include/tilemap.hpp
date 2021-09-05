@@ -114,14 +114,13 @@ private:
 
     olc::PixelGameEngine* _pge {nullptr};
 
-    //olc::Renderable rAll;
-    //olc::Renderable rOne;
-    //std::vector<olc::Renderable> tileset;
- 
     // Our terrain layers
     static constexpr int n_layers = 2;
     const int layers[n_layers] {WATER, GRASS};
-    TileSet* tiles[n_layers] {nullptr};
+    TileSet* tileSets[n_layers] {nullptr};
+
+    // Map from the topology of the terrain input to a terrain tile
+    std::map<std::array<int, 4>, std::array<int, 2>> topoMap;
 
     // Create a layered sprite for the given layer + neighboring layers
     olc::Sprite* GetEdgeTileFor(int myL, std::array<int, 4> bcs);

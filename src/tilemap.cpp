@@ -18,17 +18,6 @@ static std::array<olc::Pixel, 18> COLORS {
     olc::WHITE, olc::BLACK, olc::BLANK
 };
 
-// struct tileset_v7
-// {
-//     // Laying out the structure of lpc-terrains-v7.png
-//     const int tile_w = 32;
-//     const int tile_h = 32;
-//     const int nx_per_type = 3;
-//     const int ny_per_type = 7;
-//     const int ntypes_x = 10;
-//     const int ntypes_y = 4;
-// }
-
 void Tile::Draw()
 {
     if (pge) {
@@ -37,8 +26,8 @@ void Tile::Draw()
             pge->DrawDecal(vScreenPos, dTexture); //->Decal());
         } else {
             // Otherwise draw a simple filled rectangle
-            const int32_t x = vTileCoord.x * W;
-            const int32_t y = vTileCoord.y * H;
+            const int32_t x = vTileCoord.x * W - W/2;
+            const int32_t y = vTileCoord.y * H - H/2;
             pge->FillRect(x, y, W, H, pColor);
         }
     }
@@ -103,30 +92,88 @@ void TileSet::DrawBaseTile(const olc::vi2d sLoc)
 
 TileMap::TileMap()
 {
+    /**
+     * We are using an offset grid to allow finer control of the terrain
+     * stitching _with our given tileset_
+     *
+     * e.g.: The input map of tile terrain values is offset by 1/2 of a tile
+     * width/height such that each displayed tile determines its final value
+     * from the 'corner' between 4 input values
+     *
+     * X X = X: Base Tile (10, or decorative)
+     * X X = O: N/A
+     *
+     * O X = X: Top-Left Cutout (5)
+     * X X = O: Bottom-Right Overlay (14)
+     *
+     * x O = X: Top-Right Cutout (4)
+     * X X = O: Bottom-Left Overlay (12)
+     *
+     * X X = X: Bottom-Right Cutout (1)
+     * X O = O: Top-Left Overlay (6)
+     *
+     * X X = Bottom-Left Cutout (2)
+     * O X = Top-Right Overlay (8)
+     *
+     * O O = X: Top Center Overlay (7)
+     * X X = O: Bottom Center Overlay (13)
+     *
+     * X O = X: Right Center Overlay (11)
+     * X O = O: Left Center Overlay (9)
+     *
+     * X X = X: Bottom Center Overlay (13)
+     * O O = O: Top Center Overlay (7)
+     *
+     * O X = X: Left Center Overlay (9)
+     * O X = O: Right Center Overlay (11)
+     *
+     * O X = X: BL/TR Diag (15)
+     * X O = O: TL/BR Diat (16)
+     *
+     * X O = X: TL/BR Diat (16)
+     * O X = O: BL/TR Diag (15)
+     *
+     * X O = X: Bottom-Right Overlay (14)
+     * O O = O: Top-Left Cutout (5)
+     *
+     * O X = X: Bottom-Left Overlay (12)
+     * O O = O: Top-Right Cutout (4)
+     *
+     * O O = X: Top-Left Overlay (6)
+     * O X = O: Bottom-Right Cutout (1)
+     *
+     * O O = X: Top-Right Overlay (8)
+     * X O = O: Bottom-Left Cutout (2)
+     *
+     * X X = X: N/A
+     * X X = O: Base Tile (10, or decorative)
+     */
+
+    // Map each possible boundary condition to an overlay tile
+    topoMap[{1, 1, 1, 1}] = {10, -1};
+    topoMap[{0, 1, 1, 1}] = {5, 14};
+    topoMap[{1, 0, 1, 1}] = {4, 12};
+    topoMap[{1, 1, 0, 1}] = {1, 6};
+    topoMap[{1, 1, 1, 0}] = {2, 8};
+    topoMap[{0, 0, 1, 1}] = {7, 13};
+    topoMap[{1, 0, 0, 1}] = {11, 9};
+    topoMap[{1, 1, 0, 0}] = {13, 7};
+    topoMap[{0, 1, 1, 0}] = {9, 11};
+    topoMap[{0, 1, 0, 1}] = {15, 16};
+    topoMap[{1, 0, 1, 0}] = {16, 15};
+    topoMap[{1, 0, 0, 0}] = {14, 5};
+    topoMap[{0, 1, 0, 0}] = {12, 4};
+    topoMap[{0, 0, 1, 0}] = {6, 1};
+    topoMap[{0, 0, 0, 1}] = {8, 2};
+    topoMap[{0, 0, 0, 0}] = {-1, 10};
 }
 
 void TileMap::LoadTileSet(const std::string& fname)
 {
-    //rAll.Load(fname);
-    //tileset.resize(128);
-    //int n = 0;
-    //for (auto &rTile : tileset) {
-    //    rTile.Create(32, 32);
-    //    _pge->SetDrawTarget(rTile.Sprite());
-    //    const int ox = (n % 16) * 32;
-    //    const int oy = (n / 16) * 32;
-    //    _pge->DrawPartialSprite(0, 0, rAll.Sprite(), ox, oy, 32, 32);
-    //    // Note: Drawing to the sprite of a renderable does not
-    //    // automatically update the decal
-    //    rTile.UpdateDecal();
-    //    n++;
-    //}
-    //_pge->SetDrawTarget(nullptr);
-
     olc::Sprite sprMap(fname);
 
     for (int i = 0; i < n_layers; i++) {
-        tiles[i] = new TileSet(_pge, &sprMap, layers[i]); 
+        tileSets[i] = new TileSet(_pge, &sprMap, layers[i]); 
     }
 }
 
@@ -181,12 +228,17 @@ void TileMap::LoadTerrainMap()
         //std::cout << "[" << texmap[i] << ", (" << ix << "," << iy << ")] ";
         //if ((i + 1) % 20 == 0) std::cout << std::endl;
 
+        // Note:
+        // With how we're currently creating the terrain, we need to offset
+        // the sprites by half a tile size for this to actually work
         _map[i].vTileCoord = {ix, iy};
-        _map[i].vScreenPos = {ix * 32.f, iy * 32.f};
+        _map[i].vScreenPos = {ix * 32.f - 16.f, iy * 32.f - 16.f};
         _map[i].pge = _pge;
     }
 
-    // Correct Boundaries (inter-type edges)
+    // Use a neighborhood of 4 values to determine each tile's sprite
+    // Note that the sprite will then be offset by 1/2 W, H in order for
+    // the resultant terrain to line up with the given inputs
     for (int i = 0; i < n_grid; i++) {
         const int myL = _map[i].layer;
         std::array<int, 4> bcs = {myL, myL, myL, myL};
@@ -200,13 +252,6 @@ void TileMap::LoadTerrainMap()
             bcs[3] = texmap[ix + (iy + 1) * nx];
         }
 
-        // OLD METHOD -- TOO HARD TO WORK WITH THIS TILESET
-        // Neighbors: Top, Right, Bottom, Left
-        // if (iy > 0)           bcs[0] = _map[i - _dims.x].layer;
-        // if (ix + 1 < _dims.x) bcs[1] = _map[i + 1].layer;
-        // if (iy + 1 < _dims.y) bcs[2] = _map[i + _dims.x].layer;
-        // if (ix > 0)           bcs[3] = _map[i - 1].layer;
-
         olc::Sprite* tex = GetEdgeTileFor(myL, bcs);
         _map[i].dTexture = new olc::Decal(tex);
         _pge->SetDrawTarget(nullptr);
@@ -219,90 +264,14 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
 {
     // Returns a sprite created by layering the appropriate terrain types into
     // a single sprite, in order
-    int min_layer = TERRAIN_TYPE::TYPE_COUNT;
+    //int min_layer = TERRAIN_TYPE::TYPE_COUNT;
 
-    min_layer = std::min(min_layer, myL);
-    for (int i = 0; i < 4; i++) {
-        min_layer = std::min(min_layer, bcs[i]);
-    }
+    //min_layer = std::min(min_layer, myL);
+    //for (int i = 0; i < 4; i++) {
+    //    min_layer = std::min(min_layer, bcs[i]);
+    //}
 
-    /// TODO: Relocate / refactor
-    // Map each possible boundary condition to an overlay tile
-    /**
-     * We are using an offset grid to allow finer control of the terrain
-     * stitching with our given tileset
-     * e.g. - The input map of tile terrain values is offset by 1/2 of a tile
-     * width/height such that each displayed tile determines its final value
-     * from the 'corner' between 4 input values
-     *
-     * X X = X: Base Tile (10, or decorative)
-     * X X = O: N/A
-     *
-     * O X = X: Top-Left Cutout (5)
-     * X X = O: Bottom-Right Overlay (14)
-     *
-     * x O = X: Top-Right Cutout (4)
-     * X X = O: Bottom-Left Overlay (12)
-     *
-     * X X = X: Bottom-Right Cutout (1)
-     * X O = O: Top-Left Overlay (6)
-     *
-     * X X = Bottom-Left Cutout (2)
-     * O X = Top-Right Overlay (8)
-     *
-     * O O = X: Top Center Overlay (7)
-     * X X = O: Bottom Center Overlay (13)
-     *
-     * X O = X: Right Center Overlay (11)
-     * X O = O: Left Center Overlay (9)
-     *
-     * X X = X: Bottom Center Overlay (13)
-     * O O = O: Top Center Overlay (7)
-     *
-     * O X = X: Left Center Overlay (9)
-     * O X = O: Right Center Overlay (11)
-     *
-     * O X = X: BL/TR Diag (15)
-     * X O = O: TL/BR Diat (16)
-     *
-     * X O = X: TL/BR Diat (16)
-     * O X = O: BL/TR Diag (15)
-     *
-     * X O = X: Bottom-Right Overlay (14)
-     * O O = O: Top-Left Cutout (5)
-     *
-     * O X = X: Bottom-Left Overlay (12)
-     * O O = O: Top-Right Cutout (4)
-     *
-     * O O = X: Top-Left Overlay (6)
-     * O X = O: Bottom-Right Cutout (1)
-     *
-     * O O = X: Top-Right Overlay (8)
-     * X O = O: Bottom-Left Cutout (2)
-     *
-     * X X = X: N/A
-     * X X = O: Base Tile (10, or decorative)
-     */
-
-    std::map<std::array<int, 4>, std::array<int, 2>> tmap;
-    tmap[{1, 1, 1, 1}] = {10, -1};
-    tmap[{0, 1, 1, 1}] = {5, 14};
-    tmap[{1, 0, 1, 1}] = {4, 12};
-    tmap[{1, 1, 0, 1}] = {1, 6};
-    tmap[{1, 1, 1, 0}] = {2, 8};
-    tmap[{0, 0, 1, 1}] = {7, 13};
-    tmap[{1, 0, 0, 1}] = {11, 9};
-    tmap[{1, 1, 0, 0}] = {13, 7};
-    tmap[{0, 1, 1, 0}] = {9, 11};
-    tmap[{0, 1, 0, 1}] = {15, 16};
-    tmap[{1, 0, 1, 0}] = {16, 15};
-    tmap[{1, 0, 0, 0}] = {14, 5};
-    tmap[{0, 1, 0, 0}] = {12, 4};
-    tmap[{0, 0, 1, 0}] = {6, 1};
-    tmap[{0, 0, 0, 1}] = {8, 2};
-    tmap[{0, 0, 0, 0}] = {-1, 10};
-
-    auto tIdx = tmap[bcs];
+    auto tIdx = topoMap[bcs];
 
     olc::Sprite* spr = new olc::Sprite(32, 32);
     _pge->SetPixelMode(olc::Pixel::MASK);
@@ -310,11 +279,11 @@ olc::Sprite* TileMap::GetEdgeTileFor(int myL, std::array<int, 4> bcs)
 
     /// TODO: Fix layer numbering
     if (tIdx[1] >= 0 && tIdx[1] < 21) {
-        _pge->DrawSprite(0, 0, tiles[0]->GetTileAt(tIdx[1]));
+        _pge->DrawSprite(0, 0, tileSets[0]->GetTileAt(tIdx[1]));
     }
 
     if (tIdx[0] >= 0 && tIdx[0] < 21) {
-        _pge->DrawSprite(0, 0, tiles[1]->GetTileAt(tIdx[0]));
+        _pge->DrawSprite(0, 0, tileSets[1]->GetTileAt(tIdx[0]));
     }
     _pge->SetDrawTarget(nullptr);
 
@@ -326,17 +295,5 @@ void TileMap::Draw()
     for (auto &T : _map) {
         T.Draw();
     }
-    //int n = 0;
-    //for (auto &rTile : tileset) {
-    //    const int ox = (n % 20) * 32;
-    //    const int oy = (n / 20) * 32;
-    //    _pge->DrawDecal(olc::vi2d({ox,oy}), rTile.Decal());
-    //    n++;
-    //}
-
-    // DEBUGGING - draw the individual terrain tilesets
-    // tiles[0]->DrawSingleTile({0, 128}, {0, 0});
-    // tiles[1]->DrawSingleTile({32*3, 128}, {0, 0});
-    // tiles[2]->DrawSingleTile({32*6, 128}, {0, 0});
 };
 

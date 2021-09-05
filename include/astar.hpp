@@ -27,7 +27,8 @@ struct ATile
     float effort {0.f};
     int counter {0};
 
-    std::vector<ATile*> neighbors;
+    //std::vector<ATile*> neighbors;
+    std::vector<int> neighbors;
 
     enum State {CLOSED, OPEN, VISITED};
     State state {CLOSED};
