@@ -125,7 +125,7 @@ void TileMap::LoadTileSet(const std::string& fname)
 
     olc::Sprite sprMap(fname);
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < n_layers; i++) {
         tiles[i] = new TileSet(_pge, &sprMap, layers[i]); 
     }
 }
