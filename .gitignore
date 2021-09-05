@@ -1,0 +1,18 @@
+*.o
+*.out
+*.bin
+*.swp
+*.ods
+*.ods#
+*.txt
+
+# Ignore untracked assets and inputs by default; force-add if desired
+*.png
+*.bmp
+*.xcf
+*.dat
+
+# Misc.
+*.vscode/
+bin/
+obj/
