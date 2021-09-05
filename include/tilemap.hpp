@@ -144,8 +144,8 @@ private:
     olc::PixelGameEngine* _pge {nullptr};
 
     // Our terrain layers
-    static constexpr int N_LAYERS = 3;
-    const int layers[N_LAYERS] {WATER, GRASS, PAVERS};
+    static constexpr int N_LAYERS = 4;
+    const int layers[N_LAYERS] {WATER, DIRT, GRASS, PAVERS};
     TileSet* tileSets[N_LAYERS] {nullptr};
 
     // Map from the topology of the terrain input to a terrain tile

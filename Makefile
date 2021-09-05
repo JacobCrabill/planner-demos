@@ -6,12 +6,12 @@
 ###### Configuration
 
 CXX = g++
-DEBUG_LEVEL = 2
+DEBUG_LEVEL = 1
 
 
 ##### Setup Flags
 
-CXXFLAGS = -std=c++2a -fPIC -Wno-unknown-pragmas #-fstack-protector-all
+CXXFLAGS = -std=c++17 -fPIC -Wno-unknown-pragmas #-fstack-protector-all
 LIBS = -lX11 -lGL -lpthread -lpng -lstdc++fs
 WARN_ON = -Wall -Wextra -Wconversion
 WARN_OFF = -Wno-narrowing
