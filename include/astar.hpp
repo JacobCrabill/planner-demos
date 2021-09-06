@@ -49,15 +49,15 @@ class AStar
 public:
     AStar() { };
 
-    void SetTerrainMap(TileMap& map);
+    void SetTerrainMap(GameMap& map);
 
     bool ComputePath(olc::vi2d start, olc::vi2d goal);
 
-    std::vector<olc::vi2d> GetPath() { return _final_path; }
+    std::vector<olc::vi2d> GetPath();
     float GetPathCost() { return _path_cost; }
 
 private:
-    TileMap* _map {nullptr};
+    GameMap* _map {nullptr};
 
     olc::vi2d _dims {0, 0};
     std::vector<ATile> _tiles; /// TODO: Use one of my ndarray/matrix headers
@@ -65,7 +65,7 @@ private:
     std::vector<float> _fScore;
     
     bool _goalReached {false};
-    float _path_cost {0.f};
+    float _path_cost {-1.f};
 
     std::vector<olc::vi2d> _final_path;
 

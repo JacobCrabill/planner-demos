@@ -42,12 +42,19 @@ float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
     return Diagonal(t1, t2);
 }
 
+std::vector<olc::vi2d> AStar::GetPath()
+{
+    if (_path_cost > 0)
+        return _final_path;
+    
+    return {};
+}
 
-void AStar::SetTerrainMap(TileMap& map)
+void AStar::SetTerrainMap(GameMap& map)
 {
     _map = &map;
 
-    /// TODO / HACK / NOTE: 
+    /// TODO: / HACK / NOTE: 
     //  We have an extra row+col of terrain tiles
     //  in order to fully fill the screen given how
     //  our map is generated
@@ -118,6 +125,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         tile.f = FLT_MAX;
         tile.g = FLT_MAX;
     }
+    _path_cost = -1.f;
 
     // Start the algorithm with the start tile
     _tiles[sInd].g = 0;
@@ -153,6 +161,9 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
                 _final_path.insert(_final_path.begin(), loc);
                 idx = tree[idx];
             }
+            // Add the final tile - the start tile
+            auto loc = _tiles[idx].loc;
+            _final_path.insert(_final_path.begin(), loc);
 
             return true;
         }

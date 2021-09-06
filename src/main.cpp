@@ -23,8 +23,8 @@ bool AstarDemo::OnUserCreate()
         exit(1);
     }
 
-    tileMap.SetPGE(static_cast<PixelGameEngine*>(this));
-    tileMap.LoadTerrainMap();
+    gameMap.SetPGE(static_cast<PixelGameEngine*>(this));
+    gameMap.LoadTerrainMap();
 
     // Clear the top layer so we can later draw to layers underneath
     SetPixelMode(olc::Pixel::MASK);
@@ -45,7 +45,7 @@ bool AstarDemo::OnUserCreate()
     DrawBackground();
 
     /** Setup the path-planning objects */
-    astar.SetTerrainMap(tileMap);
+    astar.SetTerrainMap(gameMap);
 
     return true;
 }
@@ -98,13 +98,6 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
             }
         }
 
-        // If the goal tile has been set, display it
-        if (isGoalSet) {
-            SetPixelMode(olc::Pixel::ALPHA);
-            DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
-            SetPixelMode(olc::Pixel::NORMAL);
-        }
-
         // If the goal tile has been set, display the shortest path
         
         if (isGoalSet && (newStart || newGoal)) {
@@ -112,19 +105,30 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         }
     }
 
+    // If the goal tile has been set, display it
+    if (isGoalSet) {
+        SetPixelMode(olc::Pixel::ALPHA);
+        DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
+        SetPixelMode(olc::Pixel::NORMAL);
+    }
+
     float cost = 0.f;
     if (havePath) {
         auto vPath = astar.GetPath();
         cost = astar.GetPathCost();
 
-        /// Draw the output from A*
-        SetDrawTarget(layerGame);
-        SetPixelMode(olc::Pixel::ALPHA);
-        for (auto& ij : vPath) {
-            olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
-            DrawDecal(xy, rHighlight.Decal(), noscale, olc::MAGENTA);
+        if (vPath.size() > 0) {
+            /// Draw the output from A*
+            SetDrawTarget(layerGame);
+            SetPixelMode(olc::Pixel::ALPHA);
+            // Draw the returned path, skipping the start and goal tiles (already drawn)
+            for (int i = 1; i < vPath.size() - 1; i++) {
+                auto ij = vPath[i];
+                olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
+                DrawDecal(xy, rHighlight.Decal(), noscale, olc::MAGENTA);
+            }
+            SetPixelMode(olc::Pixel::NORMAL);
         }
-        SetPixelMode(olc::Pixel::NORMAL);
     }
 
     // Display the screen and map coordinates of the mouse
@@ -133,14 +137,17 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     ss << std::endl << std::endl;
     ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
     ss << std::endl << std::endl;
-    ss << "Terrain Type: " << tileMap.GetTerrainAt(tile_ij.x, tile_ij.y); 
-    ss << ", Effort: " << tileMap.GetEffortAt(tile_ij.x, tile_ij.y);
+    ss << "Terrain Type: " << gameMap.GetTerrainAt(tile_ij.x, tile_ij.y); 
+    ss << ", Effort: " << gameMap.GetEffortAt(tile_ij.x, tile_ij.y);
     ss << std::endl << std::endl;
     ss << "Path Cost:   " << cost;
-    std::string status = ss.str();
-    //DrawStringDecal({5, 5}, status);
-    DrawStringDecal({5, 420}, status);
+    DrawStringDecal({5, 420}, ss.str());
 
+    if (gamePaused) {
+        std::stringstream().swap(ss);
+        ss << "PAUSED" << std::endl;
+        DrawStringDecal({5, 5}, ss.str(), olc::WHITE, {2.f, 2.f});
+    }
 
     return true;
 }
@@ -154,7 +161,7 @@ void AstarDemo::DrawBackground()
     FillRect(0, 0, WIDTH, HEIGHT, olc::VERY_DARK_GREY);
 
     // Draw the world terrain map
-    tileMap.Draw();
+    gameMap.Draw();
 
     // Draw Vertical Grid
     for (int i = 0; i < WIDTH / W; i++) {

@@ -17,6 +17,14 @@ public:
         sAppName = "AstarDemo";
     }
 
+protected:
+    bool OnUserCreate() override;
+
+    bool OnUserUpdate(float fElapsedTime) override;
+
+    void DrawBackground();
+
+private:
     olc::Renderable rHighlight;
 
     olc::vi2d vGoalIJ;
@@ -28,16 +36,8 @@ public:
     const olc::vf2d noscale = {1.f, 1.f};
 
     AStar astar;
-    TileMap tileMap;
-
+    GameMap gameMap;
 
     uint8_t layerBG;
     uint8_t layerGame;
-
-public:
-    bool OnUserCreate() override;
-
-    bool OnUserUpdate(float fElapsedTime) override;
-
-    void DrawBackground();
 };
