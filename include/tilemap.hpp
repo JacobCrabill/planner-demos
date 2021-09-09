@@ -209,7 +209,7 @@ public:
     const int N_TILES = NX * NY; //!< Number of individual tiles in the tileset
 
 private:
-    olc::PixelGameEngine* _pge {nullptr};
+    olc::PixelGameEngine* pge {nullptr};
 
     //! Map from the topology of the terrain input to a terrain tile index.
     static std::map<std::vector<int>, int> topoMap;
@@ -230,9 +230,9 @@ public:
      */
     void LoadTerrainMap();
 
-    void SetPGE(olc::PixelGameEngine* pge) { _pge = pge; }
+    void SetPGE(olc::PixelGameEngine* _pge) { pge = _pge; }
 
-    olc::vi2d GetDims() { return _dims; }
+    olc::vi2d GetDims() { return dims; }
 
     void Draw();
 
@@ -242,16 +242,16 @@ public:
     float GetEffortAt(int idx);
 
 private:
-    std::vector<Tile> _map;
+    std::vector<Tile> map;
 
-    olc::vi2d _dims {0, 0};
-    bool bMapLoaded {false};
+    olc::vi2d dims {0, 0};
+    bool mapLoaded {false};
 
-    olc::PixelGameEngine* _pge {nullptr};
+    olc::PixelGameEngine* pge {nullptr};
 
     //! Our terrain layers
     static constexpr int N_LAYERS = 5;
-    const int layers[N_LAYERS] {WATER, DIRT, GRAVEL, GRASS, PAVERS};
+    const int layers[N_LAYERS] {WATER, GRASS, DIRT, GRAVEL, PAVERS};
     TileSet* tileSets[N_LAYERS] {nullptr};
 
     const std::map<TERRAIN_TYPE, float> teffort {

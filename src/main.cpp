@@ -15,11 +15,11 @@ bool AstarDemo::OnUserCreate()
     // Called once at the start, so create things here
 
     // Load the tile highlighter
-    const std::string sHighlight = "resources/highlighted-square-1-32.png";
-    auto ret = rHighlight.Load(sHighlight);
+    const std::string fname = "resources/highlighted-square-1-32.png";
+    auto ret = tileHighlight.Load(fname);
 
     if (ret != olc::rcode::OK) {
-        std::cerr << "Error loading file: " << sHighlight << std::endl;
+        std::cerr << "Error loading file: " << fname << std::endl;
         exit(1);
     }
 
@@ -66,7 +66,7 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
 
     // Highlight the map tile under the mouse
     SetPixelMode(olc::Pixel::ALPHA);
-    DrawDecal(tile_xy, rHighlight.Decal(), noscale, olc::WHITE);
+    DrawDecal(tile_xy, tileHighlight.Decal(), noscale, olc::WHITE);
     SetPixelMode(olc::Pixel::NORMAL);
 
     if (GetKey(olc::Key::P).bPressed) {
@@ -76,24 +76,24 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     if (!gamePaused) {
 
         bool newStart = false;
-        if (tile_ij != vStartIJ) {
+        if (tile_ij != startIJ) {
             newStart = true;
-            vStartIJ = tile_ij;
+            startIJ = tile_ij;
         }
 
         // Set the 'goal tile' on any left-click
         // When clicking on the already-set goal tile, un-set it 
         bool newGoal = false;
         if (GetMouse(0).bPressed) {
-            if (isGoalSet && vGoalIJ == tile_ij) {
+            if (isGoalSet && goalIJ == tile_ij) {
                 isGoalSet = false;
 
             } else {
-                if (tile_ij != vGoalIJ) {
+                if (tile_ij != goalIJ) {
                     newGoal = true;
                 }
-                vGoalIJ = tile_ij;
-                vGoalPos = tile_xy;
+                goalIJ = tile_ij;
+                goalPos = tile_xy;
                 isGoalSet = true;
             }
         }
@@ -101,14 +101,14 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         // If the goal tile has been set, display the shortest path
         
         if (isGoalSet && (newStart || newGoal)) {
-            havePath = astar.ComputePath(tile_ij, vGoalIJ); 
+            havePath = astar.ComputePath(tile_ij, goalIJ); 
         }
     }
 
     // If the goal tile has been set, display it
     if (isGoalSet) {
         SetPixelMode(olc::Pixel::ALPHA);
-        DrawDecal(vGoalPos, rHighlight.Decal(), noscale, olc::CYAN);
+        DrawDecal(goalPos, tileHighlight.Decal(), noscale, olc::CYAN);
         SetPixelMode(olc::Pixel::NORMAL);
     }
 
@@ -125,7 +125,7 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
             for (int i = 1; i < vPath.size() - 1; i++) {
                 auto ij = vPath[i];
                 olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
-                DrawDecal(xy, rHighlight.Decal(), noscale, olc::MAGENTA);
+                DrawDecal(xy, tileHighlight.Decal(), noscale, olc::MAGENTA);
             }
             SetPixelMode(olc::Pixel::NORMAL);
         }

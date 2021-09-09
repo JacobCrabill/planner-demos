@@ -25,11 +25,11 @@ protected:
     void DrawBackground();
 
 private:
-    olc::Renderable rHighlight;
+    olc::Renderable tileHighlight;
 
-    olc::vi2d vGoalIJ;
-    olc::vi2d vStartIJ;
-    olc::vf2d vGoalPos;
+    olc::vi2d goalIJ;
+    olc::vi2d startIJ;
+    olc::vf2d goalPos;
     bool isGoalSet {false};
     bool havePath {false};
 

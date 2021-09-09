@@ -51,28 +51,28 @@ void Tile::Draw()
     }
 }
 
-TileSet::TileSet(olc::PixelGameEngine* pge, olc::Sprite* sprMap, int tIdx) :
-    _pge(pge)
+TileSet::TileSet(olc::PixelGameEngine* _pge, olc::Sprite* sprMap, int tIdx) :
+    pge(_pge)
 {
     // Load the full tileset for our terrain type
     // NOTE: Assuming single row of terrain tilesets for now
     tileset = new olc::Sprite(TW, TH);
-    _pge->SetDrawTarget(tileset);
-    _pge->DrawPartialSprite(0, 0, sprMap, tIdx * TW, 0 * TH, TW, TH);
-    _pge->SetDrawTarget(nullptr);
+    pge->SetDrawTarget(tileset);
+    pge->DrawPartialSprite(0, 0, sprMap, tIdx * TW, 0 * TH, TW, TH);
+    pge->SetDrawTarget(nullptr);
 
     // Load each individual terrain tile into its own sprite
     tiles.resize(3 * 7);
     int n = 0;
     for (auto& spr : tiles) {
         spr = new olc::Sprite(TW, TH);
-        _pge->SetDrawTarget(spr);
+        pge->SetDrawTarget(spr);
         const int ox = 32 * (n % 3);
         const int oy = 32 * (n / 3);
-        _pge->DrawPartialSprite(0, 0, tileset, ox, oy, 32, 32);
+        pge->DrawPartialSprite(0, 0, tileset, ox, oy, 32, 32);
         n++;
     }
-    _pge->SetDrawTarget(nullptr);
+    pge->SetDrawTarget(nullptr);
 }
 
 TileSet::~TileSet()
@@ -86,7 +86,7 @@ void TileSet::DrawSingleTile(const olc::vi2d sLoc, const olc::vi2d tIdx)
     if (tIdx.x >= NX || tIdx.y >= NY) return;
 
     // Draw tile [tIdx] at [sLoc] on the screen
-    _pge->DrawSprite(sLoc.x, sLoc.y, tileset);
+    pge->DrawSprite(sLoc.x, sLoc.y, tileset);
 }
 
 olc::Sprite* TileSet::GetBaseTile()
@@ -110,7 +110,7 @@ void GameMap::LoadTileSet(const std::string& fname)
     olc::Sprite sprMap(fname);
 
     for (int i = 0; i < N_LAYERS; i++) {
-        tileSets[i] = new TileSet(_pge, &sprMap, layers[i]); 
+        tileSets[i] = new TileSet(pge, &sprMap, layers[i]);
     }
 }
 
@@ -130,8 +130,8 @@ void GameMap::LoadTerrainMap()
     int32_t n_tiles = nx * ny;
     int32_t n_grid = (nx - 1) * (ny - 1);
 
-    _dims.x = nx - 1;
-    _dims.y = ny - 1;
+    dims.x = nx - 1;
+    dims.y = ny - 1;
 
     std::vector<int32_t> texmap(n_tiles);
     int32_t n_read = 0;
@@ -147,20 +147,20 @@ void GameMap::LoadTerrainMap()
     if (n_read < n_tiles) {
         std::cout << "Error while reading texture map - unexpected EOF";
         std::cout << std::endl;
-        bMapLoaded = false;
+        mapLoaded = false;
         return;
     }
 
-    bMapLoaded = true;
-    _map.resize(n_grid);
+    mapLoaded = true;
+    map.resize(n_grid);
     for (int32_t i = 0; i < n_grid; i++) {
-        const int32_t ix = i % _dims.x; // x == column
-        const int32_t iy = i / _dims.x; // y == row
+        const int32_t ix = i % dims.x; // x == column
+        const int32_t iy = i / dims.x; // y == row
         const int32_t tidx = (ix + 1) + (iy + 1) * nx; // Index in full world input
         const int layer = texmap[tidx];
         const TERRAIN_TYPE tt = static_cast<TERRAIN_TYPE>(layers[layer]);
-        _map[i].layer = layer;
-        _map[i].fEffort = teffort.at(tt);
+        map[i].layer = layer;
+        map[i].fEffort = teffort.at(tt);
 
         //std::cout << "[" << texmap[i] << ", (" << ix << "," << iy << ")] ";
         //if ((i + 1) % 20 == 0) std::cout << std::endl;
@@ -168,19 +168,19 @@ void GameMap::LoadTerrainMap()
         // Note:
         // With how we're currently creating the terrain, we need to offset
         // the sprites by half a tile size for this to actually work
-        _map[i].vTileCoord = {ix, iy};
-        _map[i].vScreenPos = {ix * 32.f - 16.f, iy * 32.f - 16.f};
-        _map[i].pge = _pge;
+        map[i].vTileCoord = {ix, iy};
+        map[i].vScreenPos = {ix * 32.f - 16.f, iy * 32.f - 16.f};
+        map[i].pge = pge;
     }
 
     // Use a neighborhood of 4 values to determine each tile's sprite
     // Note that the sprite will then be offset by 1/2 W, H in order for
     // the resultant terrain to line up with the given inputs
     for (int i = 0; i < n_grid; i++) {
-        const int myL = _map[i].layer;
+        const int myL = map[i].layer;
         std::array<int, 4> bcs = {myL, myL, myL, myL};
-        const int ix = _map[i].vTileCoord.x;
-        const int iy = _map[i].vTileCoord.y;
+        const int ix = map[i].vTileCoord.x;
+        const int iy = map[i].vTileCoord.y;
     
         // Copy the neighborhood
         if (ix < nx && iy < ny) {
@@ -201,9 +201,9 @@ void GameMap::LoadTerrainMap()
         }
 
         olc::Sprite* tex = GetEdgeTileFor(laymap);
-        _map[i].dTexture = new olc::Decal(tex);
-        _pge->SetDrawTarget(nullptr);
-        _pge->DrawDecal({0.f, 0.f}, _map[i].dTexture);
+        map[i].dTexture = new olc::Decal(tex);
+        pge->SetDrawTarget(nullptr);
+        pge->DrawDecal({0.f, 0.f}, map[i].dTexture);
     }
 };
 
@@ -232,49 +232,49 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
     }
 
     olc::Sprite* spr = new olc::Sprite(32, 32);
-    _pge->SetPixelMode(olc::Pixel::MASK);
-    _pge->SetDrawTarget(spr);
+    pge->SetPixelMode(olc::Pixel::MASK);
+    pge->SetDrawTarget(spr);
 
     for (int i = 0; i < N_LAYERS; i++) {
         if (tIdx[i] >= 0 && tIdx[i] < tileSets[i]->N_TILES) {
-            _pge->DrawSprite(0, 0, tileSets[i]->GetTileAt(tIdx[i]));
+            pge->DrawSprite(0, 0, tileSets[i]->GetTileAt(tIdx[i]));
         }
     }
 
-    _pge->SetDrawTarget(nullptr);
+    pge->SetDrawTarget(nullptr);
 
     return spr;
 }
 
 TERRAIN_TYPE GameMap::GetTerrainAt(int ix, int iy)
 {
-    const int idx = ix + iy * _dims.x;
+    const int idx = ix + iy * dims.x;
     return GetTerrainAt(idx);
 }
 
 TERRAIN_TYPE GameMap::GetTerrainAt(int idx)
 {
-    if (idx < 0 || idx >= _map.size()) return TYPE_COUNT;
+    if (idx < 0 || idx >= map.size()) return TYPE_COUNT;
 
-    return static_cast<TERRAIN_TYPE>(layers[_map[idx].layer]);
+    return static_cast<TERRAIN_TYPE>(layers[map[idx].layer]);
 }
 
 float GameMap::GetEffortAt(int ix, int iy)
 {
-    const int idx = ix + iy * _dims.x;
+    const int idx = ix + iy * dims.x;
     return GetEffortAt(idx);
 }
 
 float GameMap::GetEffortAt(int idx)
 {
-    if (idx < 0 || idx >= _map.size()) return -1.f;
+    if (idx < 0 || idx >= map.size()) return -1.f;
 
-    return _map[idx].fEffort;
+    return map[idx].fEffort;
 }
 
 void GameMap::Draw()
 {
-    for (auto &T : _map) {
+    for (auto &T : map) {
         T.Draw();
     }
 };

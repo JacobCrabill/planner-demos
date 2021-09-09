@@ -14,9 +14,9 @@
 
 #include "tilemap.hpp"
 
-struct ATile
+struct Node
 {
-    ATile() = default;
+    Node() = default;
 
     olc::vi2d loc {0, 0};
     int idx {0};
@@ -27,7 +27,6 @@ struct ATile
     float effort {0.f};
     int counter {0};
 
-    //std::vector<ATile*> neighbors;
     std::vector<int> neighbors;
 
     enum State {CLOSED, OPEN, VISITED};
@@ -37,7 +36,7 @@ struct ATile
         return std::make_tuple(f, counter, idx);
     }
 
-    bool operator<(const ATile& b) {
+    bool operator<(const Node& b) {
         if (f == b.f)
             return counter < b.counter;
         return f < b.f;
@@ -54,20 +53,18 @@ public:
     bool ComputePath(olc::vi2d start, olc::vi2d goal);
 
     std::vector<olc::vi2d> GetPath();
-    float GetPathCost() { return _path_cost; }
+    float GetPathCost() { return path_cost; }
 
 private:
-    GameMap* _map {nullptr};
+    GameMap* map {nullptr};
 
-    olc::vi2d _dims {0, 0};
-    std::vector<ATile> _tiles; /// TODO: Use one of my ndarray/matrix headers
-    std::vector<float> _gScore;
-    std::vector<float> _fScore;
+    olc::vi2d dims {0, 0};
+    std::vector<Node> nodes; /// TODO: Use one of my ndarray/matrix headers
     
-    bool _goalReached {false};
-    float _path_cost {-1.f};
+    bool goalReached {false};
+    float path_cost {-1.f};
 
-    std::vector<olc::vi2d> _final_path;
+    std::vector<olc::vi2d> final_path;
 
     // Heuristic function (Manhattan distance, or Euclidean distance)
     float Hval(olc::vi2d t1, olc::vi2d t2);

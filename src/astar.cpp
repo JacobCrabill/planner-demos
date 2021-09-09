@@ -3,7 +3,7 @@
  * @Author: Jacob Crabill <github.com/JacobCrabill>
  *
  * @Description:
- *     Implements the A* algorithm for a 2D array of tiles
+ *     Implements the A* algorithm for a 2D array of nodes
  */
 
 #include "astar.hpp"
@@ -44,59 +44,57 @@ float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
 
 std::vector<olc::vi2d> AStar::GetPath()
 {
-    if (_path_cost > 0)
-        return _final_path;
+    if (path_cost > 0)
+        return final_path;
     
     return {};
 }
 
-void AStar::SetTerrainMap(GameMap& map)
+void AStar::SetTerrainMap(GameMap& _map)
 {
-    _map = &map;
+    map = &_map;
 
     /// TODO: / HACK / NOTE: 
-    //  We have an extra row+col of terrain tiles
+    //  We have an extra row+col of terrain nodes
     //  in order to fully fill the screen given how
     //  our map is generated
-    _dims = _map->GetDims();
-    _dims.x -= 1;
-    _dims.y -= 1;
+    dims = map->GetDims();
+    dims.x -= 1;
+    dims.y -= 1;
 
     // Construct our local copy of the map in a format suitable for the algo.
     // This consists of one "worker thread" per terrain tile
-    _tiles.resize(_dims.x * _dims.y);
+    nodes.resize(dims.x * dims.y);
 
     int cidx = 0;
-    for (auto& tile : _tiles) {
-        const int i = cidx % _dims.x;
-        const int j = cidx / _dims.x;
-        tile.loc = {i, j};
-        tile.idx = cidx;
-        tile.effort = _map->GetEffortAt(i, j);
-
-        /// DEBUGGING printf("(%d, %d): Effort %.1f\n", i, j, tile.effort);
+    for (auto& node : nodes) {
+        const int i = cidx % dims.x;
+        const int j = cidx / dims.x;
+        node.loc = {i, j};
+        node.idx = cidx;
+        node.effort = map->GetEffortAt(i, j);
 
         /* Setup neighbors list */
-        if (tile.effort >= 0) {
+        if (node.effort >= 0) {
 
             // Number of neighors with current alg.
             // TOP, BOTTOM, LEFT, RIGHT
             /// TODO: Allow corners (NN == 8); change HVal()
             // const int NN = 4;
-            // int nidx[NN] = {cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1};
+            // int nidx[NN] = {cidx - dims.x, cidx + dims.x, cidx - 1, cidx + 1};
             // T/B/L/R; TL/TR/BL/BR
             const int NN = 8;
             int nidx[NN] = {
-                cidx - _dims.x, cidx + _dims.x, cidx - 1, cidx + 1,
-                cidx - _dims.x - 1, cidx - _dims.x + 1,
-                cidx + _dims.x - 1, cidx + _dims.x + 1
+                cidx - dims.x, cidx + dims.x, cidx - 1, cidx + 1,
+                cidx - dims.x - 1, cidx - dims.x + 1,
+                cidx + dims.x - 1, cidx + dims.x + 1
             };
 
             for (int n = 0; n < NN; n++) {
-                const int ni = nidx[n] % _dims.x;
-                const int nj = nidx[n] / _dims.x;
-                if (_map->GetEffortAt(ni, nj) >= 0) {
-                    tile.neighbors.push_back(nidx[n]);
+                const int ni = nidx[n] % dims.x;
+                const int nj = nidx[n] / dims.x;
+                if (map->GetEffortAt(ni, nj) >= 0) {
+                    node.neighbors.push_back(nidx[n]);
                 }
             }
 
@@ -110,31 +108,31 @@ void AStar::SetTerrainMap(GameMap& map)
 
 bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
 {
-    int sInd = start.y * _dims.x + start.x;
-    int gInd = goal.y * _dims.x + goal.x;
+    int sInd = start.y * dims.x + start.x;
+    int gInd = goal.y * dims.x + goal.x;
 
-    if (sInd < 0 || sInd > _tiles.size()) return false;
-    if (gInd < 0 || gInd > _tiles.size()) return false;
+    if (sInd < 0 || sInd > nodes.size()) return false;
+    if (gInd < 0 || gInd > nodes.size()) return false;
 
     /// DEBUGGING
     // printf("===Begin A*===\nStart/Goal: (%d,%d), (%d,%d)\n",
     //         start.x, start.y, goal.x, goal.y);
 
     // Reset all 'f' and 'g' scores for the A* alg.
-    for (auto& tile : _tiles) {
-        tile.f = FLT_MAX;
-        tile.g = FLT_MAX;
+    for (auto& node : nodes) {
+        node.f = FLT_MAX;
+        node.g = FLT_MAX;
     }
-    _path_cost = -1.f;
+    path_cost = -1.f;
 
-    // Start the algorithm with the start tile
-    _tiles[sInd].g = 0;
-    _tiles[sInd].f = Hval(start, goal);
+    // Start the algorithm with the start node
+    nodes[sInd].g = 0;
+    nodes[sInd].f = Hval(start, goal);
 
-    // Setup the priority queue to track the active/'open' tiles
+    // Setup the priority queue to track the active/'open' nodes
     std::set<std::tuple<float, int, int> > pqueue;
     std::set<int> open_set;
-    pqueue.insert(_tiles[sInd].GetTuple());
+    pqueue.insert(nodes[sInd].GetTuple());
     open_set.insert(sInd);
 
     std::map<int, int> tree;
@@ -145,32 +143,31 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         const int id = std::get<2>(tup);
         pqueue.erase(pqueue.begin());
         open_set.erase(id);
-        ATile& current = _tiles[id];
-        //printf("--current: %d (%d,%d), %.1f\n", id, current.loc.x, current.loc.y, current.effort);
+        Node& current = nodes[id];
         
         // Check to see if we've reached our destination 
         if (current.loc == goal) {
             /* --- A Path Was Found --- */
-            _path_cost = current.g;
+            path_cost = current.g;
 
             // Save the path to be drawn later
-            _final_path.clear();
+            final_path.clear();
             int idx = current.idx;
             while (tree.count(idx)) {
-                auto loc = _tiles[idx].loc;
-                _final_path.insert(_final_path.begin(), loc);
+                auto loc = nodes[idx].loc;
+                final_path.insert(final_path.begin(), loc);
                 idx = tree[idx];
             }
-            // Add the final tile - the start tile
-            auto loc = _tiles[idx].loc;
-            _final_path.insert(_final_path.begin(), loc);
+            // Add the final node - the start node
+            auto loc = nodes[idx].loc;
+            final_path.insert(final_path.begin(), loc);
 
             return true;
         }
 
         for (auto nidx : current.neighbors) {
             // Get the cost to traverse this neighbor
-            auto& neighbor = _tiles[nidx];
+            auto& neighbor = nodes[nidx];
             float tmp_g = current.g + Hval(current.loc, neighbor.loc) + neighbor.effort;
             /// DEBUGGING
             // printf("n %d (%d,%d): effort %.1f\n",
@@ -181,7 +178,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
                 tree[nidx] = current.idx;
                 neighbor.g = tmp_g;
                 neighbor.f = tmp_g + Hval(neighbor.loc, goal);
-                const int idx = neighbor.loc.x + neighbor.loc.y * _dims.x;
+                const int idx = neighbor.loc.x + neighbor.loc.y * dims.x;
 
                 if (open_set.count(idx) == 0) {
                     // Insert the neighbor into our set of spots to check
@@ -190,7 +187,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
                     neighbor.counter = counter;
                     pqueue.insert(neighbor.GetTuple());
                     open_set.insert(idx);
-                    neighbor.state = ATile::State::OPEN;
+                    neighbor.state = Node::State::OPEN;
                 }
             }
         }
