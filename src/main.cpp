@@ -24,7 +24,7 @@ bool AstarDemo::OnUserCreate()
     }
 
     gameMap.SetPGE(static_cast<PixelGameEngine*>(this));
-    gameMap.LoadTerrainMap();
+    gameMap.GenerateMap();
 
     // Clear the top layer so we can later draw to layers underneath
     SetPixelMode(olc::Pixel::MASK);

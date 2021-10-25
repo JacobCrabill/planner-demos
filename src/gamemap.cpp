@@ -1,12 +1,12 @@
 /**
- * @File: tilemap.cpp
+ * @File: gamemap.cpp
  * @Author: Jacob Crabill <github.com/JacobCrabill>
  *
  * @Description:
  *     Implements a world map made of discrete Tiles
  *     Also implements the Tile class to hold a texture and terrain attributes
  */
-#include "tilemap.hpp"
+#include "gamemap.hpp"
 
 static std::array<olc::Pixel, 18> COLORS {
     olc::VERY_DARK_GREY, olc::VERY_DARK_RED, olc::VERY_DARK_YELLOW,
@@ -14,25 +14,6 @@ static std::array<olc::Pixel, 18> COLORS {
     olc::DARK_GREY, olc::DARK_RED, olc::DARK_YELLOW, olc::DARK_CYAN, olc::DARK_BLUE,
     olc::GREY, olc::RED, olc::YELLOW, olc::CYAN, olc::BLUE,
     olc::WHITE, olc::BLACK, olc::BLANK
-};
-
-std::map<std::vector<int>, int> TileSet::topoMap 
-{
-    {{0, 1, 2, 3}, 10},
-    {{1, 2, 3},     5},
-    {{0, 2, 3},     4},
-    {{0, 1, 3},     1},
-    {{0, 1, 2},     2},
-    {{2, 3},        7},
-    {{0, 3},       11},
-    {{0, 1},       13},
-    {{1, 2},        9},
-    {{1, 3},       15},
-    {{0, 2},       16},
-    {{0},          14},
-    {{1},          12},
-    {{2},           6},
-    {{3},           8}
 };
 
 void Tile::Draw()
@@ -51,26 +32,44 @@ void Tile::Draw()
     }
 }
 
-TileSet::TileSet(olc::PixelGameEngine* _pge, olc::Sprite* sprMap, int tIdx) :
-    pge(_pge)
+TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const int* typeMap, uint8_t nTypes) :
+    pge(_pge),
+    topoMap({
+        {{0, 1, 2, 3}, 10},
+        {{1, 2, 3},     5},
+        {{0, 2, 3},     4},
+        {{0, 1, 3},     1},
+        {{0, 1, 2},     2},
+        {{2, 3},        7},
+        {{0, 3},       11},
+        {{0, 1},       13},
+        {{1, 2},        9},
+        {{1, 3},       15},
+        {{0, 2},       16},
+        {{0},          14},
+        {{1},          12},
+        {{2},           6},
+        {{3},           8}
+    })
 {
-    // Load the full tileset for our terrain type
+    // Load the full tileset
     // NOTE: Assuming single row of terrain tilesets for now
-    tileset = new olc::Sprite(TW, TH);
-    pge->SetDrawTarget(tileset);
-    pge->DrawPartialSprite(0, 0, sprMap, tIdx * TW, 0 * TH, TW, TH);
-    pge->SetDrawTarget(nullptr);
+    tileset = new olc::Sprite(fname);
 
-    // Load each individual terrain tile into its own sprite
-    tiles.resize(3 * 7);
-    int n = 0;
-    for (auto& spr : tiles) {
-        spr = new olc::Sprite(TW, TH);
-        pge->SetDrawTarget(spr);
-        const int ox = 32 * (n % 3);
-        const int oy = 32 * (n / 3);
-        pge->DrawPartialSprite(0, 0, tileset, ox, oy, 32, 32);
-        n++;
+    // Load each individual terrain tile into its own sprite, for each terrain type
+    tiles.resize(nTypes);
+    for (int i = 0; i < nTypes; i++) {
+        tiles[i].resize(3 * 7);
+        const int IX = typeMap[i] * NX;
+        int n = 0;
+        for (auto& spr : tiles[i]) {
+            spr = new olc::Sprite(TW, TH);
+            pge->SetDrawTarget(spr);
+            const int ox = 32 * (IX + n % 3);
+            const int oy = 32 * (n / 3);
+            pge->DrawPartialSprite(0, 0, tileset, ox, oy, 32, 32);
+            n++;
+        }
     }
     pge->SetDrawTarget(nullptr);
 }
@@ -81,49 +80,64 @@ TileSet::~TileSet()
         delete tileset;
 }
 
-void TileSet::DrawSingleTile(const olc::vi2d sLoc, const olc::vi2d tIdx)
-{
-    if (tIdx.x >= NX || tIdx.y >= NY) return;
-
-    // Draw tile [tIdx] at [sLoc] on the screen
-    pge->DrawSprite(sLoc.x, sLoc.y, tileset);
-}
-
-olc::Sprite* TileSet::GetBaseTile()
+olc::Sprite* TileSet::GetBaseTile(uint8_t type)
 {
     const int i = 1;
     const int j = 3;
-    return tiles[3 * j + i];
+    return tiles[type][3 * j + i];
 }
 
-olc::Sprite* TileSet::GetTileAt(int idx)
+int TileSet::GetRandomBaseTile()
 {
-    return tiles[idx];
+    // We have 1 plain tile and 3 'decorative' versions to choose from
+    // Weight the plain one more so that it's not overwhelmingly decorative
+    int baseTileIds[4] = {10, 18, 19, 20};
+    int baseTileWgts[4] = {15, 1, 1, 1};
+
+    int wSum = 0;
+    for (int i = 0; i < 4; i++) {
+        wSum += baseTileWgts[i];
+    }
+
+    // Use thresholding to assign our desired probabilities to the normal distribution
+    int r = rand() % wSum;
+    for (int i = 0; i < 4; i++) {
+        if (r < baseTileWgts[i]) {
+            return baseTileIds[i];
+        }
+        r -= baseTileWgts[i];
+    }
+
+    assert("Should not reach here!");
+
+    return baseTileIds[0];
 }
+
+olc::Sprite* TileSet::GetTileAt(uint8_t type, int idx)
+{
+    return tiles[type][idx];
+}
+
+int TileSet::GetIdxFromTopology(const std::vector<int>& topo)
+{
+    if (topo.size() == 0) return -1;
+
+    return topoMap.at(topo);
+}
+
 GameMap::GameMap()
 {
 
 }
 
-void GameMap::LoadTileSet(const std::string& fname)
-{
-    olc::Sprite sprMap(fname);
-
-    for (int i = 0; i < N_LAYERS; i++) {
-        tileSets[i] = new TileSet(pge, &sprMap, layers[i]);
-    }
-}
-
-void GameMap::LoadTerrainMap()
+void GameMap::GenerateMap()
 {
     // Load the terrain-tile assets
-    //LoadTileSet("resources/lpc-terrains/terrain-v7.png");
-    LoadTileSet("resources/lpc-terrains/reduced-tileset-1.png");
+    tileSet = new TileSet(pge, "resources/lpc-terrains/reduced-tileset-1.png", layers, N_LAYERS);
 
     // Load the map definition file
-    //std::ifstream f("test-terrain-2.dat", std::ifstream::in);
-    //std::ifstream f("test-terrain-8x4.dat", std::ifstream::in);
-    std::ifstream f("test.dat", std::ifstream::in);
+    std::string options[3] = {"test.dat", "test-terrain-2.dat", "test-terrain-8x4.dat"};
+    std::ifstream f(options[0], std::ifstream::in);
     
     int32_t nx, ny;
     f >> nx >> ny;
@@ -161,9 +175,6 @@ void GameMap::LoadTerrainMap()
         const TERRAIN_TYPE tt = static_cast<TERRAIN_TYPE>(layers[layer]);
         map[i].layer = layer;
         map[i].fEffort = teffort.at(tt);
-
-        //std::cout << "[" << texmap[i] << ", (" << ix << "," << iy << ")] ";
-        //if ((i + 1) % 20 == 0) std::cout << std::endl;
 
         // Note:
         // With how we're currently creating the terrain, we need to offset
@@ -218,7 +229,7 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
     std::array<int, N_LAYERS> tIdx;
     for (int L = 0; L < N_LAYERS; L++) {
         if (laymap[L].size() > 0) {
-            tIdx[L] = TileSet::GetIdxFromTopology(laymap[L]);
+            tIdx[L] = tileSet->GetIdxFromTopology(laymap[L]);
         } else {
             tIdx[L] = -1;
         }
@@ -226,8 +237,8 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
 
     for (auto& t : tIdx) {
         // Add some spice - randomize all the 'plain' tiles
-        if (t == TileSet::GetBaseIdx()) {
-            t = TileSet::GetRandomBaseTile();
+        if (t == tileSet->GetBaseIdx()) {
+            t = tileSet->GetRandomBaseTile();
         }
     }
 
@@ -236,8 +247,8 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
     pge->SetDrawTarget(spr);
 
     for (int i = 0; i < N_LAYERS; i++) {
-        if (tIdx[i] >= 0 && tIdx[i] < tileSets[i]->N_TILES) {
-            pge->DrawSprite(0, 0, tileSets[i]->GetTileAt(tIdx[i]));
+        if (tIdx[i] >= 0 && tIdx[i] < tileSet->N_TILES) {
+            pge->DrawSprite(0, 0, tileSet->GetTileAt(i, tIdx[i]));
         }
     }
 

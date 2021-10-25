@@ -51,7 +51,7 @@ INCS  += -I$(CURDIR)/include
 
 OBJS = 	$(OBJDIR)/main.o \
 	$(OBJDIR)/astar.o \
-	$(OBJDIR)/tilemap.o
+	$(OBJDIR)/gamemap.o
 
 
 TARGET = planner-demo

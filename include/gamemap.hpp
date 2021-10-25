@@ -1,5 +1,5 @@
 /**
- * @File: tilemap.hpp
+ * @File: gamemap.hpp
  * @Author: Jacob Crabill <github.com/JacobCrabill>
  *
  * @Description:
@@ -46,65 +46,33 @@ struct Tile
 };
 
 /**
- * @brief Struct to hold and use the sprite tileset for one terrain type.
+ * @brief Struct to hold and use the sprite tileset for several terrain types.
  *
  * A very specific structure is assumed for the tileset layout and topology.
- * At present, 
  */
 class TileSet
 {
 public:
     /**
      * @param pge Pointer to the parent PixelGameEngine
-     * @param sprMap A sprite containing an array of tilesets for all terrain types
-     * @param tIdx The index with the array for the current terrain type
+     * @param fname Sprinte file containing an array of tilesets for all terrain types
+     * @param typeMap Remapping of game layers to terrain types from the tileset
      */
-    TileSet(olc::PixelGameEngine* pge, olc::Sprite* sprMap, int tIdx);
+    TileSet(olc::PixelGameEngine* pge, std::string fname, const int* typeMap, uint8_t nTypes);
 
     ~TileSet();
 
-    olc::Sprite* tileset {nullptr};   //!< The entire tileset for one terrain type
-    std::vector<olc::Sprite*> tiles;  //!< Each individual tile for one terrain type
+    olc::Sprite* tileset {nullptr};   //!< The entire tileset for all terrain types
+    std::vector<std::vector<olc::Sprite*>> tiles;  //!< Each individual tile for all terrain types
 
-    /**
-     * @brief Draw one tile from a tileset
-     * @param sLoc The screen location at which to draw the tile
-     * @param tIdx The (1D) index of the tile to draw
-     */
-    void DrawSingleTile(const olc::vi2d sLoc, const olc::vi2d tIdx);
-
-    olc::Sprite* GetBaseTile();
-    olc::Sprite* GetTileAt(int idx);
+    olc::Sprite* GetBaseTile(uint8_t type);
+    olc::Sprite* GetTileAt(uint8_t type, int idx);
 
     /** 
      * Get a random 'plain terrain' tile, allowing us to add some variety to
      * otherwise boring regions.
      */
-    static int GetRandomBaseTile()
-    {
-        // We have 1 plain tile and 3 'decorative' versions to choose from
-        // Weight the plain one more so that it's not overwhelmingly decorative
-        int baseTileIds[4] = {10, 18, 19, 20};
-        int baseTileWgts[4] = {15, 1, 1, 1};
-
-        int wSum = 0;
-        for (int i = 0; i < 4; i++) {
-            wSum += baseTileWgts[i];
-        }
-
-        // Use thresholding to assign our desirec probabilities to the normal distribution
-        int r = rand() % wSum;
-        for (int i = 0; i < 4; i++) {
-            if (r < baseTileWgts[i]) {
-                return baseTileIds[i];
-            }
-            r -= baseTileWgts[i];
-        }
-
-        assert("Should not reach here!");
-
-        return baseTileIds[0];
-    }
+    int GetRandomBaseTile();
 
     /**
      * @brief Get the required tile ID for the input topology.
@@ -180,15 +148,10 @@ public:
      *     O O => Topology for X: {}
      *     O O    Tile Index: N/A
      */
-    static int GetIdxFromTopology(const std::vector<int>& topo)
-    {
-        if (topo.size() == 0) return -1;
-
-        return topoMap[topo];      
-    }
+    int GetIdxFromTopology(const std::vector<int>& topo);
 
     //! The index of a 'plain' tile of this terrain type
-    static int GetBaseIdx() { return 10; }
+    int GetBaseIdx() { return 10; }
 
     int GetOTLIdx() { return 6; }  //!< ID for Overlay | Top-Left
     int GetOTCIdx() { return 7; }  //!< ID for Overlay | Top-Center
@@ -212,7 +175,7 @@ private:
     olc::PixelGameEngine* pge {nullptr};
 
     //! Map from the topology of the terrain input to a terrain tile index.
-    static std::map<std::vector<int>, int> topoMap;
+    const std::map<std::vector<int>, int> topoMap;
 };
 
 //! Class to load the desired map terrain, a tileset, and display the map
@@ -221,14 +184,12 @@ class GameMap
 public:
     GameMap();
 
-    void LoadTileSet(const std::string& fname);
-
     /**
      * @brief Load the text-based map of terrain for the game
      * 
      * TODO: The input file format is too simplistic. Make it better / use YAML.
      */
-    void LoadTerrainMap();
+    void GenerateMap();
 
     void SetPGE(olc::PixelGameEngine* _pge) { pge = _pge; }
 
@@ -252,7 +213,7 @@ private:
     //! Our terrain layers
     static constexpr int N_LAYERS = 5;
     const int layers[N_LAYERS] {WATER, GRASS, DIRT, GRAVEL, PAVERS};
-    TileSet* tileSets[N_LAYERS] {nullptr};
+    TileSet* tileSet {nullptr};
 
     const std::map<TERRAIN_TYPE, float> teffort {
         {GRASS, 3.f}, {WATER, -1.f}, {DIRT, 10.f}, {GRAVEL, 20.f}, {PAVERS, 1.f}
