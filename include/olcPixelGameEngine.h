@@ -1450,7 +1450,7 @@ namespace olc
 
 		std::vector<char> buffer(nIndexSize);
 		for (uint32_t j = 0; j < nIndexSize; j++)
-			buffer[j] = baseFile.get();
+			buffer[j] = (char)baseFile.get();
 
 		std::vector<char> decoded = scramble(buffer, sKey);
 		size_t pos = 0;
@@ -1475,7 +1475,7 @@ namespace olc
 
 			std::string sFileName(nFilePathSize, ' ');
 			for (uint32_t j = 0; j < nFilePathSize; j++)
-				sFileName[j] = get();
+				sFileName[j] = (char)get();
 
 			sResourceFile e;
 			read((char*)&e.nSize, sizeof(uint32_t));
@@ -1738,6 +1738,9 @@ namespace olc
 		ld.nResID = renderer->CreateTexture(vScreenSize.x, vScreenSize.y);
 		renderer->UpdateTexture(ld.nResID, ld.pDrawTarget);
 		vLayers.push_back(ld);
+		if (vLayers.size() >= 256) {
+			perror("ERROR: Too many layers created (>256)\n");
+		}
 		return uint32_t(vLayers.size()) - 1;
 	}
 
@@ -2396,7 +2399,7 @@ namespace olc
 		di.pos[1] = (olc::vf2d(0.0f, float(decal->sprite->height)) - center) * scale;
 		di.pos[2] = (olc::vf2d(float(decal->sprite->width), float(decal->sprite->height)) - center) * scale;
 		di.pos[3] = (olc::vf2d(float(decal->sprite->width), 0.0f) - center) * scale;
-		float c = cos(fAngle), s = sin(fAngle);
+		float c = cosf(fAngle), s = sinf(fAngle);
 		for (int i = 0; i < 4; i++)
 		{
 			di.pos[i] = pos + olc::vf2d(di.pos[i].x * c - di.pos[i].y * s, di.pos[i].x * s + di.pos[i].y * c);
@@ -2447,7 +2450,7 @@ namespace olc
 		di.pos[1] = (olc::vf2d(0.0f, source_size.y) - center) * scale;
 		di.pos[2] = (olc::vf2d(source_size.x, source_size.y) - center) * scale;
 		di.pos[3] = (olc::vf2d(source_size.x, 0.0f) - center) * scale;
-		float c = cos(fAngle), s = sin(fAngle);
+		float c = cosf(fAngle), s = sinf(fAngle);
 		for (int i = 0; i < 4; i++)
 		{
 			di.pos[i] = pos + olc::vf2d(di.pos[i].x * c - di.pos[i].y * s, di.pos[i].x * s + di.pos[i].y * c);
@@ -2986,9 +2989,9 @@ namespace olc
 			uint32_t sym4 = (uint32_t)data[b + 3] - 48;
 			uint32_t r = sym1 << 18 | sym2 << 12 | sym3 << 6 | sym4;
 
-			for (int i = 0; i < 24; i++)
+			for (uint8_t i = 0; i < 24; i++)
 			{
-				int k = r & (1 << i) ? 255 : 0;
+				uint8_t k = r & (1 << i) ? 255 : 0;
 				fontSprite->SetPixel(px, py, olc::Pixel(k, k, k, k));
 				if (++py == 48) { px++; py = 0; }
 			}
@@ -3109,6 +3112,7 @@ namespace olc
 		olc::rcode CreateDevice(std::vector<void*> params, bool bFullScreen, bool bVSYNC) override
 		{
 #if defined(OLC_PLATFORM_WINAPI)
+			(void)bFullScreen;
 			// Create Device Context
 			glDeviceContext = GetDC((HWND)(params[0]));
 			PIXELFORMATDESCRIPTOR pfd =
@@ -3133,6 +3137,7 @@ namespace olc
 #endif
 
 #if defined(OLC_PLATFORM_X11)
+			(void)bFullScreen;
 			using namespace X11;
 			// Linux has tighter coupling between OpenGL and X11, so we store
 			// various "platform" handles in the renderer
@@ -3575,7 +3580,7 @@ namespace olc
 			return olc::rcode::FAIL;
 		}
 
-		olc::rcode SaveImageResource(olc::Sprite* spr, const std::string& sImageFile) override
+		olc::rcode SaveImageResource(olc::Sprite*, const std::string&) override
 		{
 			return olc::rcode::OK;
 		}

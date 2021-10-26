@@ -4,7 +4,7 @@
 #define WIDTH 640
 #define HEIGHT 480
 
-#include "tilemap.hpp"
+#include "gamemap.hpp"
 #include "astar.hpp"
 
 // Override base class with your custom functionality
