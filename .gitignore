@@ -12,7 +12,11 @@
 *.xcf
 *.dat
 
+# *Don't* ignore CMake files
+!CMakeLists.txt
+
 # Misc.
 *.vscode/
 bin/
+build/
 obj/
