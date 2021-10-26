@@ -1,20 +1,27 @@
+/**
+ * @File: main.hpp
+ * @Author: Jacob Crabill <github.com/JacobCrabill>
+ */
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
 #define WIDTH 640
 #define HEIGHT 480
 
-#include "gamemap.hpp"
 #include "astar.hpp"
+#include "util.hpp"
+#include "gamemap.hpp"
 
 // Override base class with your custom functionality
 class AstarDemo : public olc::PixelGameEngine
 {
 public:
-    AstarDemo()
+    AstarDemo(const Config& _config) :
+        gameMap(_config)
     {
         // Name your application
         sAppName = "AstarDemo";
+        config = _config;
     }
 
 protected:
@@ -37,6 +44,7 @@ private:
 
     AStar astar;
     GameMap gameMap;
+    Config config;
 
     uint8_t layerBG;
     uint8_t layerGame;

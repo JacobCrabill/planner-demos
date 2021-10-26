@@ -9,6 +9,7 @@
 #pragma once
 
 #include "olcPixelGameEngine.h"
+#include "util.hpp"
 
 #include <cassert>
 #include <random>
@@ -153,17 +154,6 @@ public:
     //! The index of a 'plain' tile of this terrain type
     int GetBaseIdx() { return 10; }
 
-    int GetOTLIdx() { return 6; }  //!< ID for Overlay | Top-Left
-    int GetOTCIdx() { return 7; }  //!< ID for Overlay | Top-Center
-    int GetOTRIdx() { return 8; }  //!< ID for Overlay | Top-Right
-    int GetOLCIdx() { return 9; }  //!< ID for Overlay | Left-Center
-    int GetORCIdx() { return 11; } //!< ID for Overlay | Right-Center
-    int GetOBLIdx() { return 12; } //!< ID for Overlay | Bottom-Left
-    int GetOBCIdx() { return 13; } //!< ID for Overlay | Bottom-Center
-    int GetOBRIdx() { return 14; } //!< ID for Overlay | Bottom-Right
-
-    int GetSingletIdx() { return 3 * (rand() % 2); } //!< ID(s) for Single-tile overlay
-
     //! Width and height (in px) of each terrain type in the overall tileset
     const int NX = 3;            //!< Number of tiles in X direction
     const int NY = 7;            //!< Number of tiles in Y direction
@@ -176,13 +166,24 @@ private:
 
     //! Map from the topology of the terrain input to a terrain tile index.
     const std::map<std::vector<int>, int> topoMap;
+
+    int GetOTLIdx() { return 6; }  //!< ID for Overlay | Top-Left
+    int GetOTCIdx() { return 7; }  //!< ID for Overlay | Top-Center
+    int GetOTRIdx() { return 8; }  //!< ID for Overlay | Top-Right
+    int GetOLCIdx() { return 9; }  //!< ID for Overlay | Left-Center
+    int GetORCIdx() { return 11; } //!< ID for Overlay | Right-Center
+    int GetOBLIdx() { return 12; } //!< ID for Overlay | Bottom-Left
+    int GetOBCIdx() { return 13; } //!< ID for Overlay | Bottom-Center
+    int GetOBRIdx() { return 14; } //!< ID for Overlay | Bottom-Right
+
+    int GetSingletIdx() { return 3 * (rand() % 2); } //!< ID(s) for Single-tile overlay
 };
 
 //! Class to load the desired map terrain, a tileset, and display the map
 class GameMap
 {
 public:
-    GameMap();
+    GameMap(const Config& _config) : config(_config) {};
 
     /**
      * @brief Load the text-based map of terrain for the game
@@ -207,6 +208,7 @@ private:
 
     olc::vi2d dims {0, 0};
     bool mapLoaded {false};
+    Config config;
 
     olc::PixelGameEngine* pge {nullptr};
 

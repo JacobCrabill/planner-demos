@@ -125,19 +125,18 @@ int TileSet::GetIdxFromTopology(const std::vector<int>& topo)
     return topoMap.at(topo);
 }
 
-GameMap::GameMap()
-{
-
-}
-
 void GameMap::GenerateMap()
 {
     // Load the terrain-tile assets
+    if (tileSet) {
+        delete tileSet;
+        tileSet = nullptr;
+    }
+
     tileSet = new TileSet(pge, "resources/lpc-terrains/reduced-tileset-1.png", layers, N_LAYERS);
 
     // Load the map definition file
-    std::string options[3] = {"test.dat", "test-terrain-2.dat", "test-terrain-8x4.dat"};
-    std::ifstream f(options[0], std::ifstream::in);
+    std::ifstream f(config.fConfig, std::ifstream::in);
     
     int32_t nx, ny;
     f >> nx >> ny;

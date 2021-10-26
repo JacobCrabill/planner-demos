@@ -12,7 +12,7 @@
 #include <cfloat>
 #include <queue>
 
-#include "tilemap.hpp"
+#include "gamemap.hpp"
 
 struct Node
 {

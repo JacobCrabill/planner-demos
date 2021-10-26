@@ -176,9 +176,44 @@ void AstarDemo::DrawBackground()
     }
 }
 
-int main()
+bool LoadInput(const std::string& fname, Config& config)
 {
-    AstarDemo demo;
+    std::ifstream f(fname, std::ifstream::in);
+
+    if (f.is_open()) {
+        config.fConfig = fname;
+        f >> config.dims.x >> config.dims.y;
+        return true;
+    }
+
+    return false;
+}
+
+void print_usage(const std::string& arg0)
+{
+    std::cout << "Invalid input file" << std::endl;
+    std::cout << "Usage:" << std::endl;
+    std::cout << "    " << arg0 << " <input_config>" << std::endl;
+}
+
+int main(int argc, char* argv[])
+{
+    /// TODO: Load the input/config file here
+    /// This should include the game / screen / window dimentions to pass below
+    std::string options[3] = {"test.dat", "test-terrain-2.dat", "test-terrain-8x4.dat"};
+    std::string fname(options[0]);
+    if (argc > 1) {
+        fname = argv[1];
+    }
+
+    Config config;
+
+    if (!LoadInput(fname, config)) {
+        print_usage(argv[0]);
+        exit(1);
+    }
+
+    AstarDemo demo(config);
     if (demo.Construct(WIDTH, HEIGHT, 2, 2)) {
         demo.Start();
     }
