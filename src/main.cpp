@@ -31,10 +31,10 @@ bool AstarDemo::OnUserCreate()
     SetDrawTarget(nullptr);
     Clear(olc::BLANK);
 
-    layerGame = CreateLayer();
+    layerGame = (uint8_t)CreateLayer();
     EnableLayer(layerGame, true);
 
-    layerBG = CreateLayer();
+    layerBG = (uint8_t)CreateLayer();
     EnableLayer(layerBG, true);
     // Disable "clear-on-draw" so we only have to draw the background once
     EnableLayerClear(layerBG, false);
@@ -52,6 +52,8 @@ bool AstarDemo::OnUserCreate()
 
 bool AstarDemo::OnUserUpdate(float fElapsedTime)
 {
+    (void)fElapsedTime; // Unused for now
+
     // Can uncomment in the future if using a dynamic background layer
     // DrawBackground();
 
@@ -122,7 +124,7 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
             SetDrawTarget(layerGame);
             SetPixelMode(olc::Pixel::ALPHA);
             // Draw the returned path, skipping the start and goal tiles (already drawn)
-            for (int i = 1; i < vPath.size() - 1; i++) {
+            for (uint32_t i = 1; i < vPath.size() - 1; i++) {
                 auto ij = vPath[i];
                 olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
                 DrawDecal(xy, tileHighlight.Decal(), noscale, olc::MAGENTA);

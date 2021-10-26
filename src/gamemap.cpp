@@ -152,7 +152,7 @@ void GameMap::GenerateMap()
     while (f >> texmap[n_read]) n_read++;
 
     // Constrain the inputs to be within our layer definitions
-    for (int i = 0; i < texmap.size(); i++) {
+    for (uint8_t i = 0; i < texmap.size(); i++) {
         texmap[i] = std::min(std::max(0, texmap[i]), N_LAYERS - 1);
         printf("%d ", texmap[i]);
         if ((i+1) % nx == 0) printf("\n");
@@ -246,7 +246,7 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
     pge->SetPixelMode(olc::Pixel::MASK);
     pge->SetDrawTarget(spr);
 
-    for (int i = 0; i < N_LAYERS; i++) {
+    for (uint8_t i = 0; i < N_LAYERS; i++) {
         if (tIdx[i] >= 0 && tIdx[i] < tileSet->N_TILES) {
             pge->DrawSprite(0, 0, tileSet->GetTileAt(i, tIdx[i]));
         }
@@ -265,7 +265,7 @@ TERRAIN_TYPE GameMap::GetTerrainAt(int ix, int iy)
 
 TERRAIN_TYPE GameMap::GetTerrainAt(int idx)
 {
-    if (idx < 0 || idx >= map.size()) return TYPE_COUNT;
+    if (idx < 0 || (size_t)idx >= map.size()) return TYPE_COUNT;
 
     return static_cast<TERRAIN_TYPE>(layers[map[idx].layer]);
 }
@@ -278,7 +278,7 @@ float GameMap::GetEffortAt(int ix, int iy)
 
 float GameMap::GetEffortAt(int idx)
 {
-    if (idx < 0 || idx >= map.size()) return -1.f;
+    if (idx < 0 || (size_t)idx >= map.size()) return -1.f;
 
     return map[idx].fEffort;
 }

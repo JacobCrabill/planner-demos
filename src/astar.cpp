@@ -111,8 +111,8 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
     int sInd = start.y * dims.x + start.x;
     int gInd = goal.y * dims.x + goal.x;
 
-    if (sInd < 0 || sInd > nodes.size()) return false;
-    if (gInd < 0 || gInd > nodes.size()) return false;
+    if (sInd < 0 || (size_t)sInd > nodes.size()) return false;
+    if (gInd < 0 || (size_t)gInd > nodes.size()) return false;
 
     /// DEBUGGING
     // printf("===Begin A*===\nStart/Goal: (%d,%d), (%d,%d)\n",
