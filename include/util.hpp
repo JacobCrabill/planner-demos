@@ -17,4 +17,5 @@ struct Config
 {
     std::string fConfig;
     olc::vi2d dims;
+    std::string sMap;
 };

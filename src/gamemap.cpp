@@ -135,11 +135,11 @@ void GameMap::GenerateMap()
 
     tileSet = new TileSet(pge, "resources/lpc-terrains/reduced-tileset-1.png", layers, N_LAYERS);
 
-    // Load the map definition file
-    std::ifstream f(config.fConfig, std::ifstream::in);
+    // Load the map definition
+    std::stringstream f(config.sMap);
     
-    int32_t nx, ny;
-    f >> nx >> ny;
+    int32_t nx = config.dims.x;
+    int32_t ny = config.dims.y;
     int32_t n_tiles = nx * ny;
     int32_t n_grid = (nx - 1) * (ny - 1);
 

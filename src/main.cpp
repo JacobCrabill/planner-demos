@@ -8,6 +8,8 @@
 
 #include "main.hpp"
 
+#include "pugixml/src/pugixml.hpp"
+
 bool gamePaused = false;
 
 bool AstarDemo::OnUserCreate()
@@ -180,13 +182,26 @@ bool LoadInput(const std::string& fname, Config& config)
 {
     std::ifstream f(fname, std::ifstream::in);
 
-    if (f.is_open()) {
-        config.fConfig = fname;
-        f >> config.dims.x >> config.dims.y;
-        return true;
+    if (!f.is_open()) {
+        std::cout << "Unable to open: " << fname << std::endl;
+        return false;
     }
 
-    return false;
+    pugi::xml_document input;
+    pugi::xml_parse_result res = input.load(f);
+    if (res.status != pugi::status_ok) {
+        std::cout << "Error parsing file " << fname << std::endl;
+        return false;
+    }
+
+    config.fConfig = fname;
+    config.dims.x = input.child("dims").attribute("x").as_int();
+    config.dims.y = input.child("dims").attribute("y").as_int();
+    config.sMap = input.child_value("map");
+    std::cout << "dims: " << config.dims.x << ", " << config.dims.y << std::endl;
+    std::cout << "map:\n" << config.sMap << std::endl;
+
+    return true;
 }
 
 void print_usage(const std::string& arg0)
@@ -198,13 +213,23 @@ void print_usage(const std::string& arg0)
 
 int main(int argc, char* argv[])
 {
-    /// TODO: Load the input/config file here
-    /// This should include the game / screen / window dimentions to pass below
-    std::string options[3] = {"test.dat", "test-terrain-2.dat", "test-terrain-8x4.dat"};
-    std::string fname(options[0]);
+    std::string fname("test.xml");
     if (argc > 1) {
         fname = argv[1];
     }
+
+    //pugi::xml_document input;
+    //pugi::xml_parse_result res = input.load_file("test.xml");
+    //std::cout << "Parser Result: " << res.description() << std::endl;
+    ////std::cout << "doc: " << input.text().get() << std::endl;
+    //std::cout << input.first_child().name() << std::endl;
+    //pugi::xml_node dnode = input.child("dims");
+    //std::cout << dnode.type() << ", " << dnode.name() << ", " << dnode.value() << std::endl;
+    //pugi::xml_attribute dx = dnode.attribute("x");
+    //std::cout << "dx: " << dx.name() << ", " << input.child("dims").attribute("x").value() << std::endl;
+    //std::cout << "map: " << input.child_value("map") << std::endl;
+    //std::cout << "dims x,y:" << input.child("dims").attribute("nx").as_int() << ", "
+    //    << input.child("dims").attribute("ny").as_int() << std::endl;
 
     Config config;
 
