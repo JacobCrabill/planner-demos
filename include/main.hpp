@@ -5,9 +5,6 @@
 #define OLC_PGE_APPLICATION
 #include "olcPixelGameEngine.h"
 
-#define WIDTH 640
-#define HEIGHT 480
-
 #include "astar.hpp"
 #include "util.hpp"
 #include "gamemap.hpp"

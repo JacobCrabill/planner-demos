@@ -145,7 +145,7 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
     ss << ", Effort: " << gameMap.GetEffortAt(tile_ij.x, tile_ij.y);
     ss << std::endl << std::endl;
     ss << "Path Cost:   " << cost;
-    DrawStringDecal({5, 420}, ss.str());
+    DrawStringDecal({5, ScreenHeight() - 62}, ss.str());
 
     if (gamePaused) {
         std::stringstream().swap(ss);
@@ -162,19 +162,19 @@ void AstarDemo::DrawBackground()
     SetPixelMode(olc::Pixel::MASK);
 
     // Default background color
-    FillRect(0, 0, WIDTH, HEIGHT, olc::VERY_DARK_GREY);
+    FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::VERY_DARK_GREY);
 
     // Draw the world terrain map
     gameMap.Draw();
 
     // Draw Vertical Grid
-    for (int i = 0; i < WIDTH / W; i++) {
-            DrawLine(i * W, 0, i * W, HEIGHT, olc::WHITE);
+    for (int i = 0; i < ScreenWidth() / W; i++) {
+            DrawLine(i * W, 0, i * W, ScreenHeight(), olc::WHITE);
     }
 
     // Draw Horizontal Grid
-    for (int i = 0; i < HEIGHT / H; i++) {
-            DrawLine(0, i * H, WIDTH, i * H, olc::WHITE);
+    for (int i = 0; i < ScreenHeight() / H; i++) {
+            DrawLine(0, i * H, ScreenWidth(), i * H, olc::WHITE);
     }
 }
 
@@ -199,7 +199,7 @@ bool LoadInput(const std::string& fname, Config& config)
     config.dims.y = input.child("dims").attribute("y").as_int();
     config.sMap = input.child_value("map");
     std::cout << "dims: " << config.dims.x << ", " << config.dims.y << std::endl;
-    std::cout << "map:\n" << config.sMap << std::endl;
+    std::cout << "map:" << config.sMap << std::endl;
 
     return true;
 }
@@ -218,19 +218,6 @@ int main(int argc, char* argv[])
         fname = argv[1];
     }
 
-    //pugi::xml_document input;
-    //pugi::xml_parse_result res = input.load_file("test.xml");
-    //std::cout << "Parser Result: " << res.description() << std::endl;
-    ////std::cout << "doc: " << input.text().get() << std::endl;
-    //std::cout << input.first_child().name() << std::endl;
-    //pugi::xml_node dnode = input.child("dims");
-    //std::cout << dnode.type() << ", " << dnode.name() << ", " << dnode.value() << std::endl;
-    //pugi::xml_attribute dx = dnode.attribute("x");
-    //std::cout << "dx: " << dx.name() << ", " << input.child("dims").attribute("x").value() << std::endl;
-    //std::cout << "map: " << input.child_value("map") << std::endl;
-    //std::cout << "dims x,y:" << input.child("dims").attribute("nx").as_int() << ", "
-    //    << input.child("dims").attribute("ny").as_int() << std::endl;
-
     Config config;
 
     if (!LoadInput(fname, config)) {
@@ -238,8 +225,15 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
+    int32_t width = (config.dims.x - 2) * 32;
+    int32_t height = (config.dims.y - 2) * 32;
+    int32_t scale = 2;
+    if (width * scale > 3840 || height * scale > 2160) {
+        scale = 1;
+    }
+
     AstarDemo demo(config);
-    if (demo.Construct(WIDTH, HEIGHT, 2, 2)) {
+    if (demo.Construct(width, height, scale, scale)) {
         demo.Start();
     }
 
