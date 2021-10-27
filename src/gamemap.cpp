@@ -151,7 +151,7 @@ void GameMap::GenerateMap()
     while (f >> texmap[n_read]) n_read++;
 
     // Constrain the inputs to be within our layer definitions
-    for (uint8_t i = 0; i < texmap.size(); i++) {
+    for (uint32_t i = 0; i < texmap.size(); i++) {
         texmap[i] = std::min(std::max(0, texmap[i]), N_LAYERS - 1);
         printf("%d ", texmap[i]);
         if ((i+1) % nx == 0) printf("\n");
