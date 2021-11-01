@@ -49,8 +49,20 @@ bool AstarDemo::OnUserCreate()
 
     DrawBackground();
 
+    switch (config.method) {
+        case ASTAR:
+            planner = new AStar();
+            break;
+
+        case RRTSTAR:
+        default:
+            std::cout << "WARNING: Unrecognized planner method requested. Defaulting to A*." << std::endl;
+            planner = new AStar();
+            break;
+    }
+
     /** Setup the path-planning objects */
-    astar.SetTerrainMap(gameMap);
+    planner->SetTerrainMap(gameMap);
 
     return true;
 }
@@ -109,8 +121,8 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         // If the goal tile has been set, display the shortest path
         
         if (isGoalSet && (newStart || newGoal)) {
-            havePath = astar.ComputePath(mTileIJ, goalIJ);
-            pathCost = astar.GetPathCost();
+            havePath = planner->ComputePath(mTileIJ, goalIJ);
+            pathCost = planner->GetPathCost();
         }
     }
 
@@ -197,7 +209,7 @@ void AstarDemo::UpdateCursor()
 void AstarDemo::DrawPath()
 {
     if (havePath) {
-        auto vPath = astar.GetPath();
+        auto vPath = planner->GetPath();
 
         if (vPath.size() > 0) {
             /// Draw the output from A*
@@ -272,6 +284,7 @@ bool LoadInput(const std::string& fname, Config& config)
     config.dims.x = input.child("dims").attribute("x").as_int();
     config.dims.y = input.child("dims").attribute("y").as_int();
     config.sMap = input.child_value("map");
+    config.method = MethodValFromString(input.child_value("method"));
     std::cout << "dims: " << config.dims.x << ", " << config.dims.y << std::endl;
     std::cout << "map:" << config.sMap << std::endl;
 

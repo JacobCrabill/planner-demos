@@ -62,7 +62,7 @@ private:
 
     const olc::vf2d noscale = {1.f, 1.f};
 
-    AStar astar;
+    Planner* planner;
     GameMap gameMap;
     Config config;
 

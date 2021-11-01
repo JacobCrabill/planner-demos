@@ -1,4 +1,4 @@
-<method>astar</method>
+<method>A*</method>
 <dims x='45' y='35'/>
 <map>
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0

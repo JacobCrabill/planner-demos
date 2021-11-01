@@ -16,13 +16,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
 if(ENABLE_PROFILING)
-add_definitions(-DINCLUDE_PROFILING)
+    add_definitions(-DINCLUDE_PROFILING)
 endif()
 
 include_directories(${PlannerDemo_SOURCE_DIR}/include/)
 include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/)
 
-add_executable(planner-demo 
+add_executable(planner-demo
     src/astar.cpp
     src/gamemap.cpp
     src/main.cpp
