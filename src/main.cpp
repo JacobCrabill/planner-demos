@@ -59,22 +59,18 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
 {
     PROFILE_FUNC();
 
-    /**
-     * User Input / Keyboard Controls:
-     * - WASD to pan the map
-     * - C to recenter the map
-     * - P to pause the pathfinding
-     */
-
     UpdateCursor();
 
     GetUserInput();
 
-    const float panSpeed = 150.f;
+    const float panSpeed = 250.f;
     if (wPressed) viewOffset.y -= fElapsedTime * panSpeed;
     if (aPressed) viewOffset.x -= fElapsedTime * panSpeed;
     if (sPressed) viewOffset.y += fElapsedTime * panSpeed;
     if (dPressed) viewOffset.x += fElapsedTime * panSpeed;
+
+    viewOffset.x = std::min(std::max(0.f, viewOffset.x), (float)((config.dims.x - 2) * 32 - ScreenWidth()));
+    viewOffset.y = std::min(std::max(0.f, viewOffset.y), (float)((config.dims.y - 2) * 32 - ScreenHeight()));
 
     DrawBackground();
 
@@ -145,6 +141,13 @@ void AstarDemo::DrawBackground()
 
 void AstarDemo::GetUserInput()
 {
+    /**
+     * User Input / Keyboard Controls:
+     * - WASD to pan the map
+     * - C to recenter the map
+     * - P to pause the pathfinding
+     */
+
     if (GetKey(olc::Key::W).bPressed) {
         wPressed = true;
     } else if (GetKey(olc::Key::W).bReleased) {
@@ -169,7 +172,9 @@ void AstarDemo::GetUserInput()
         dPressed = false;
     }
 
-    if (GetKey(olc::Key::C).bPressed) viewOffset = {0.f, 0.f};
+    if (GetKey(olc::Key::C).bPressed) {
+        viewOffset = {0.f, 0.f};
+    }
 
     if (GetKey(olc::Key::P).bPressed) {
         gamePaused = !gamePaused;
@@ -214,9 +219,10 @@ void AstarDemo::PrintOverlay()
 {
     PROFILE_FUNC();
 
-    // Display the screen and map coordinates of the mouse
     // USEFUL NOTE: The default character size is (8px by 8px) * (scale value)
 
+    // Display the screen/map coordinates of the mouse / tile, plus path / terrain stuff
+    // This one goes in the lower-left of the screen currently
     std::stringstream ss;
     ss << "Screen X: " << mouse.x << ", Screen Y: " << mouse.y;
     ss << std::endl << std::endl;
@@ -230,6 +236,7 @@ void AstarDemo::PrintOverlay()
     ss << "Path Cost:   " << pathCost;
     DrawStringDecal({5, ScreenHeight() - 9*8-4}, ss.str());
 
+    // Second status in top-left: PAUSED indicator + keys pressed
     if (gamePaused) {
         std::stringstream().swap(ss);
         ss << "PAUSED" << std::endl;
@@ -292,19 +299,15 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    int32_t width = (config.dims.x - 2) * 32;
-    int32_t height = (config.dims.y - 2) * 32;
-    int32_t scale = 2;
-    if (width * scale > 3840 || height * scale > 2160) {
-        scale = 1;
-    }
+    const int width = std::min(1024, (config.dims.x - 2) * 32);
+    const int height = std::min(768, (config.dims.y - 2) * 32);
 
 #ifdef INCLUDE_PROFILING
     Instrumentor::Get().BeginSession("planner-demo", "results.json");
 #endif
 
     AstarDemo demo(config);
-    if (demo.Construct(width, height, scale, scale)) {
+    if (demo.Construct(width, height, 2, 2)) {
         demo.Start();
     }
 
