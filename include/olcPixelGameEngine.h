@@ -271,6 +271,10 @@ int main()
 #include <array>
 #include <cstring>
 
+/// >>>> PROFILING / DEBUGGING >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#include "profile.hpp"
+/// >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
 // O------------------------------------------------------------------------------O
 // | COMPILER CONFIGURATION ODDITIES                                              |
 // O------------------------------------------------------------------------------O
@@ -2854,6 +2858,8 @@ namespace olc
 
 	void PixelGameEngine::olc_CoreUpdate()
 	{
+		PROFILE_FUNC();
+
 		// Handle Timing
 		m_tp2 = std::chrono::system_clock::now();
 		std::chrono::duration<float> elapsedTime = m_tp2 - m_tp1;
@@ -2900,7 +2906,7 @@ namespace olc
 
 		//	renderer->ClearBuffer(olc::BLACK, true);
 
-			// Handle Frame Update
+		// Handle Frame Update
 		if (!OnUserUpdate(fElapsedTime))
 			bAtomActive = false;
 
@@ -2913,32 +2919,35 @@ namespace olc
 		vLayers[0].bShow = true;
 		renderer->PrepareDrawing();
 
-		for (auto layer = vLayers.rbegin(); layer != vLayers.rend(); ++layer)
 		{
-			if (layer->bShow)
+			PROFILE("coreUpdate::draw loop");
+			for (auto layer = vLayers.rbegin(); layer != vLayers.rend(); ++layer)
 			{
-				if (layer->funcHook == nullptr)
+				if (layer->bShow)
 				{
-					renderer->ApplyTexture(layer->nResID);
-					if (layer->bUpdate)
+					if (layer->funcHook == nullptr)
 					{
-						renderer->UpdateTexture(layer->nResID, layer->pDrawTarget);
-						layer->bUpdate = false;
+						renderer->ApplyTexture(layer->nResID);
+						if (layer->bUpdate)
+						{
+							renderer->UpdateTexture(layer->nResID, layer->pDrawTarget);
+							layer->bUpdate = false;
+						}
+
+						renderer->DrawLayerQuad(layer->vOffset, layer->vScale, layer->tint);
+
+						// Display Decals in order for this layer
+						for (auto& decal : layer->vecDecalInstance)
+							renderer->DrawDecalQuad(decal);
+		
+						if (layer->bClear)
+							layer->vecDecalInstance.clear();
 					}
-
-					renderer->DrawLayerQuad(layer->vOffset, layer->vScale, layer->tint);
-
-					// Display Decals in order for this layer
-					for (auto& decal : layer->vecDecalInstance)
-						renderer->DrawDecalQuad(decal);
-	
-					if (layer->bClear)
-						layer->vecDecalInstance.clear();
-				}
-				else
-				{
-					// Mwa ha ha.... Have Fun!!!
-					layer->funcHook();
+					else
+					{
+						// Mwa ha ha.... Have Fun!!!
+						layer->funcHook();
+					}
 				}
 			}
 		}
@@ -3202,6 +3211,8 @@ namespace olc
 
 		void DisplayFrame() override
 		{
+			PROFILE_FUNC();
+
 #if defined(OLC_PLATFORM_WINAPI)
 			SwapBuffers(glDeviceContext);
 			if (bSync) DwmFlush(); // Woooohooooooo!!!! SMOOOOOOOTH!
@@ -3218,6 +3229,7 @@ namespace olc
 
 		void PrepareDrawing() override
 		{
+			PROFILE_FUNC();
 			glEnable(GL_BLEND);
 			SetDecalMode(olc::DecalMode::NORMAL);
 		}
@@ -3251,6 +3263,7 @@ namespace olc
 
 		void DrawLayerQuad(const olc::vf2d& offset, const olc::vf2d& scale, const olc::Pixel tint) override
 		{
+			PROFILE_FUNC();
 			glBegin(GL_QUADS);
 			glColor4ub(tint.r, tint.g, tint.b, tint.a);
 			glTexCoord2f(0.0f * scale.x + offset.x, 1.0f * scale.y + offset.y);

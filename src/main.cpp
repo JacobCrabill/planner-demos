@@ -14,6 +14,8 @@ bool gamePaused = false;
 
 bool AstarDemo::OnUserCreate()
 {
+    PROFILE_FUNC();
+
     // Called once at the start, so create things here
 
     // Load the tile highlighter
@@ -38,8 +40,9 @@ bool AstarDemo::OnUserCreate()
 
     layerBG = (uint8_t)CreateLayer();
     EnableLayer(layerBG, true);
-    // Disable "clear-on-draw" so we only have to draw the background once
-    EnableLayerClear(layerBG, false);
+    // Note: We should consider disabling "clear-on-draw" when not updating the background
+    // so we only have to draw the background when we need to
+    EnableLayerClear(layerBG, true);
 
     SetDrawTarget(layerGame);
     Clear(olc::BLANK);
@@ -54,50 +57,55 @@ bool AstarDemo::OnUserCreate()
 
 bool AstarDemo::OnUserUpdate(float fElapsedTime)
 {
-    (void)fElapsedTime; // Unused for now
+    PROFILE_FUNC();
 
-    // Can uncomment in the future if using a dynamic background layer
-    // DrawBackground();
+    /**
+     * User Input / Keyboard Controls:
+     * - WASD to pan the map
+     * - C to recenter the map
+     * - P to pause the pathfinding
+     */
+
+    UpdateCursor();
+
+    GetUserInput();
+
+    const float panSpeed = 150.f;
+    if (wPressed) viewOffset.y -= fElapsedTime * panSpeed;
+    if (aPressed) viewOffset.x -= fElapsedTime * panSpeed;
+    if (sPressed) viewOffset.y += fElapsedTime * panSpeed;
+    if (dPressed) viewOffset.x += fElapsedTime * panSpeed;
+
+    DrawBackground();
 
     SetDrawTarget(layerGame);
 
-    olc::vi2d mouse = GetMousePos();
-
-    // Get the map tile at the mouse location, and its top-left coords
-    // The current tile will always be used as the start location
-    olc::vi2d tile_ij = {mouse.x / W, mouse.y / H};
-    olc::vf2d tile_xy = {float(tile_ij.x * W), float(tile_ij.y * H)};
-
     // Highlight the map tile under the mouse
     SetPixelMode(olc::Pixel::ALPHA);
-    DrawDecal(tile_xy, tileHighlight.Decal(), noscale, olc::WHITE);
+    DrawDecal(mTileXY - viewOffset, tileHighlight.Decal(), noscale, olc::WHITE);
     SetPixelMode(olc::Pixel::NORMAL);
-
-    if (GetKey(olc::Key::P).bPressed) {
-        gamePaused = !gamePaused;
-    }
 
     if (!gamePaused) {
 
         bool newStart = false;
-        if (tile_ij != startIJ) {
+        if (mTileIJ != startIJ) {
             newStart = true;
-            startIJ = tile_ij;
+            startIJ = mTileIJ;
         }
 
         // Set the 'goal tile' on any left-click
-        // When clicking on the already-set goal tile, un-set it 
+        // When clicking on the already-set goal tile, un-set it
         bool newGoal = false;
         if (GetMouse(0).bPressed) {
-            if (isGoalSet && goalIJ == tile_ij) {
+            if (isGoalSet && goalIJ == mTileIJ) {
                 isGoalSet = false;
 
             } else {
-                if (tile_ij != goalIJ) {
+                if (mTileIJ != goalIJ) {
                     newGoal = true;
                 }
-                goalIJ = tile_ij;
-                goalPos = tile_xy;
+                goalIJ = mTileIJ;
+                goalPos = mTileXY;
                 isGoalSet = true;
             }
         }
@@ -105,21 +113,86 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         // If the goal tile has been set, display the shortest path
         
         if (isGoalSet && (newStart || newGoal)) {
-            havePath = astar.ComputePath(tile_ij, goalIJ); 
+            havePath = astar.ComputePath(mTileIJ, goalIJ);
+            pathCost = astar.GetPathCost();
         }
     }
 
     // If the goal tile has been set, display it
     if (isGoalSet) {
         SetPixelMode(olc::Pixel::ALPHA);
-        DrawDecal(goalPos, tileHighlight.Decal(), noscale, olc::CYAN);
+        DrawDecal(goalPos - viewOffset, tileHighlight.Decal(), noscale, olc::CYAN);
         SetPixelMode(olc::Pixel::NORMAL);
     }
 
-    float cost = 0.f;
+    DrawPath();
+
+    PrintOverlay();
+
+    return true;
+}
+
+void AstarDemo::DrawBackground()
+{
+    PROFILE_FUNC();
+
+    SetDrawTarget(layerBG);
+    SetPixelMode(olc::Pixel::MASK);
+
+    // Draw the world terrain map
+    gameMap.Draw({(int)viewOffset.x, (int)viewOffset.y});
+}
+
+void AstarDemo::GetUserInput()
+{
+    if (GetKey(olc::Key::W).bPressed) {
+        wPressed = true;
+    } else if (GetKey(olc::Key::W).bReleased) {
+        wPressed = false;
+    }
+
+    if (GetKey(olc::Key::A).bPressed) {
+        aPressed = true;
+    } else if (GetKey(olc::Key::A).bReleased) {
+        aPressed = false;
+    }
+
+    if (GetKey(olc::Key::S).bPressed) {
+        sPressed = true;
+    } else if (GetKey(olc::Key::S).bReleased) {
+        sPressed = false;
+    }
+
+    if (GetKey(olc::Key::D).bPressed) {
+        dPressed = true;
+    } else if (GetKey(olc::Key::D).bReleased) {
+        dPressed = false;
+    }
+
+    if (GetKey(olc::Key::C).bPressed) viewOffset = {0.f, 0.f};
+
+    if (GetKey(olc::Key::P).bPressed) {
+        gamePaused = !gamePaused;
+    }
+}
+
+void AstarDemo::UpdateCursor()
+{
+    mouse = GetMousePos();
+    wMouse = mouse + viewOffset;
+
+    olc::vf2d tileOffset = {fmodf(viewOffset.x, (float)TW), fmodf(viewOffset.y, (float)TH)};
+
+    // Get the map tile at the mouse location, and its top-left coords
+    // The current tile will always be used as the start location
+    mTileIJ = {(int)wMouse.x / TW, (int)wMouse.y / TH};
+    mTileXY = {mTileIJ.x * TW, mTileIJ.y * TH};
+}
+
+void AstarDemo::DrawPath()
+{
     if (havePath) {
         auto vPath = astar.GetPath();
-        cost = astar.GetPathCost();
 
         if (vPath.size() > 0) {
             /// Draw the output from A*
@@ -128,24 +201,34 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
             // Draw the returned path, skipping the start and goal tiles (already drawn)
             for (uint32_t i = 1; i < vPath.size() - 1; i++) {
                 auto ij = vPath[i];
-                olc::vf2d xy = {float(ij.x * W), float(ij.y * H)};
+                olc::vf2d xy = {float(ij.x * TW), float(ij.y * TH)};
+                xy -= viewOffset;
                 DrawDecal(xy, tileHighlight.Decal(), noscale, olc::MAGENTA);
             }
             SetPixelMode(olc::Pixel::NORMAL);
         }
     }
+}
+
+void AstarDemo::PrintOverlay()
+{
+    PROFILE_FUNC();
 
     // Display the screen and map coordinates of the mouse
+    // USEFUL NOTE: The default character size is (8px by 8px) * (scale value)
+
     std::stringstream ss;
-    ss << "X: " << mouse.x << ", Y: " << mouse.y;
+    ss << "Screen X: " << mouse.x << ", Screen Y: " << mouse.y;
     ss << std::endl << std::endl;
-    ss << "IX: " << tile_ij.x << ", IY: " << tile_ij.y;
+    ss << "World X: " << wMouse.x << ", World Y: " << wMouse.y;
     ss << std::endl << std::endl;
-    ss << "Terrain Type: " << gameMap.GetTerrainAt(tile_ij.x, tile_ij.y); 
-    ss << ", Effort: " << gameMap.GetEffortAt(tile_ij.x, tile_ij.y);
+    ss << "IX: " << mTileIJ.x << ", IY: " << mTileIJ.y;
     ss << std::endl << std::endl;
-    ss << "Path Cost:   " << cost;
-    DrawStringDecal({5, ScreenHeight() - 62}, ss.str());
+    ss << "Terrain Type: " << gameMap.GetTerrainAt(mTileIJ.x, mTileIJ.y);
+    ss << ", Effort: " << gameMap.GetEffortAt(mTileIJ.x, mTileIJ.y);
+    ss << std::endl << std::endl;
+    ss << "Path Cost:   " << pathCost;
+    DrawStringDecal({5, ScreenHeight() - 9*8-4}, ss.str());
 
     if (gamePaused) {
         std::stringstream().swap(ss);
@@ -153,29 +236,13 @@ bool AstarDemo::OnUserUpdate(float fElapsedTime)
         DrawStringDecal({5, 5}, ss.str(), olc::WHITE, {2.f, 2.f});
     }
 
-    return true;
-}
-
-void AstarDemo::DrawBackground()
-{
-    SetDrawTarget(layerBG);
-    SetPixelMode(olc::Pixel::MASK);
-
-    // Default background color
-    FillRect(0, 0, ScreenWidth(), ScreenHeight(), olc::VERY_DARK_GREY);
-
-    // Draw the world terrain map
-    gameMap.Draw();
-
-    // Draw Vertical Grid
-    for (int i = 0; i < ScreenWidth() / W; i++) {
-            DrawLine(i * W, 0, i * W, ScreenHeight(), olc::WHITE);
-    }
-
-    // Draw Horizontal Grid
-    for (int i = 0; i < ScreenHeight() / H; i++) {
-            DrawLine(0, i * H, ScreenWidth(), i * H, olc::WHITE);
-    }
+    std::stringstream().swap(ss);
+    if (wPressed) ss << "W";
+    if (aPressed) ss << "A";
+    if (sPressed) ss << "S";
+    if (dPressed) ss << "D";
+    ss << std::endl;
+    DrawStringDecal({5, 5 + (int)gamePaused*16.f}, ss.str(), olc::RED, {2.f, 2.f});
 }
 
 bool LoadInput(const std::string& fname, Config& config)
@@ -232,10 +299,18 @@ int main(int argc, char* argv[])
         scale = 1;
     }
 
+#ifdef INCLUDE_PROFILING
+    Instrumentor::Get().BeginSession("planner-demo", "results.json");
+#endif
+
     AstarDemo demo(config);
     if (demo.Construct(width, height, scale, scale)) {
         demo.Start();
     }
+
+#ifdef INCLUDE_PROFILING
+    Instrumentor::Get().EndSession();
+#endif
 
     return 0;
 }

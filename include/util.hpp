@@ -12,6 +12,15 @@
 
 #include "olcPixelGameEngine.h"
 
+#ifdef INCLUDE_PROFILING
+    #include "profile.hpp"
+    #define PROFILE_FUNC() InstrumentationTimer timer(__PRETTY_FUNCTION__)
+    #define PROFILE(s) InstrumentationTimer timer(s)
+#else
+    #define PROFILE_FUNC()
+    #define PROFILE(s)
+#endif // INCLUDE_PROFILING
+
 /** Struct to contain game input / configuration */
 struct Config
 {

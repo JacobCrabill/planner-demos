@@ -16,18 +16,18 @@ static std::array<olc::Pixel, 18> COLORS {
     olc::WHITE, olc::BLACK, olc::BLANK
 };
 
-void Tile::Draw()
+void Tile::Draw(const olc::vi2d& offset)
 {
     if (pge) {
         // Use the supplied texture if we have it
         if (dTexture) {
-            pge->DrawDecal(vScreenPos, dTexture);
+            pge->DrawDecal(vScreenPos - offset, dTexture);
 
         } else {
             // Otherwise draw a simple filled rectangle
-            const int32_t x = vTileCoord.x * W;
-            const int32_t y = vTileCoord.y * H;
-            pge->FillRect(x, y, W, H, COLORS[layer]);
+            const int32_t x = vTileCoord.x * TW;
+            const int32_t y = vTileCoord.y * TH;
+            pge->FillRect(x, y, TW, TH, COLORS[layer]);
         }
     }
 }
@@ -60,10 +60,10 @@ TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const int* typeM
     tiles.resize(nTypes);
     for (int i = 0; i < nTypes; i++) {
         tiles[i].resize(3 * 7);
-        const int IX = typeMap[i] * NX;
+        const int IX = typeMap[i] * TS_NX;
         int n = 0;
         for (auto& spr : tiles[i]) {
-            spr = new olc::Sprite(TW, TH);
+            spr = new olc::Sprite(TS_W, TS_H);
             pge->SetDrawTarget(spr);
             const int ox = 32 * (IX + n % 3);
             const int oy = 32 * (n / 3);
@@ -177,7 +177,7 @@ void GameMap::GenerateMap()
         // With how we're currently creating the terrain, we need to offset
         // the sprites by half a tile size for this to actually work
         map[i].vTileCoord = {ix, iy};
-        map[i].vScreenPos = {ix * 32.f - 16.f, iy * 32.f - 16.f};
+        map[i].vScreenPos = {(float)(ix * TW - TW/2), float(iy * TH - TH/2)};
         map[i].pge = pge;
     }
 
@@ -239,12 +239,12 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
         }
     }
 
-    olc::Sprite* spr = new olc::Sprite(32, 32);
+    olc::Sprite* spr = new olc::Sprite(TW, TH);
     pge->SetPixelMode(olc::Pixel::MASK);
     pge->SetDrawTarget(spr);
 
     for (uint8_t i = 0; i < N_LAYERS; i++) {
-        if (tIdx[i] >= 0 && tIdx[i] < tileSet->N_TILES) {
+        if (tIdx[i] >= 0 && tIdx[i] < tileSet->TS_N_TILES) {
             pge->DrawSprite(0, 0, tileSet->GetTileAt(i, tIdx[i]));
         }
     }
@@ -280,10 +280,10 @@ float GameMap::GetEffortAt(int idx)
     return map[idx].fEffort;
 }
 
-void GameMap::Draw()
+void GameMap::Draw(const olc::vi2d& offset)
 {
     for (auto &T : map) {
-        T.Draw();
+        T.Draw(offset);
     }
 };
 

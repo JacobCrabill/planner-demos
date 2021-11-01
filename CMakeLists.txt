@@ -12,7 +12,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wextra -Wconversion -Wno-unknown-pragmas")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O1")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
 include_directories(${PlannerDemo_SOURCE_DIR}/include/)

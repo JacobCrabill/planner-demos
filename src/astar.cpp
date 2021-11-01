@@ -7,6 +7,7 @@
  */
 
 #include "astar.hpp"
+#include "util.hpp"
 
 #include <cassert>
 #include <map>
@@ -33,7 +34,7 @@ float Diagonal(const olc::vi2d& t1, const olc::vi2d& t2)
     const int dy = abs(t1.y - t2.y);
     const int mind = std::min(dx, dy);
     const int maxd = std::max(dx, dy);
-    return SQRT2 * mind + (maxd - mind);
+    return SQRT2 * (float)mind + (float)(maxd - mind);
 }
 
 float AStar::Hval(olc::vi2d t1, olc::vi2d t2)
@@ -63,7 +64,6 @@ void AStar::SetTerrainMap(GameMap& _map)
     dims.y -= 1;
 
     // Construct our local copy of the map in a format suitable for the algo.
-    // This consists of one "worker thread" per terrain tile
     nodes.resize(dims.x * dims.y);
 
     int cidx = 0;
@@ -77,11 +77,6 @@ void AStar::SetTerrainMap(GameMap& _map)
         /* Setup neighbors list */
         if (node.effort >= 0) {
 
-            // Number of neighors with current alg.
-            // TOP, BOTTOM, LEFT, RIGHT
-            /// TODO: Allow corners (NN == 8); change HVal()
-            // const int NN = 4;
-            // int nidx[NN] = {cidx - dims.x, cidx + dims.x, cidx - 1, cidx + 1};
             // T/B/L/R; TL/TR/BL/BR
             const int NN = 8;
             int nidx[NN] = {
@@ -90,7 +85,36 @@ void AStar::SetTerrainMap(GameMap& _map)
                 cidx + dims.x - 1, cidx + dims.x + 1
             };
 
+            if (i == 0) {
+                // Left Edge: Remove neighbors to the left
+                nidx[2] = -1;
+                nidx[4] = -1;
+                nidx[6] = -1;
+            }
+
+            if (j == 0) {
+                // Top Edge: Remove neighbors above
+                nidx[0] = -1;
+                nidx[4] = -1;
+                nidx[5] = -1;
+            }
+
+            if (i == dims.x - 1) {
+                // Right Edge: Remove neighbors to the right
+                nidx[3] = -1;
+                nidx[5] = -1;
+                nidx[7] = -1;
+            }
+
+            if (j == dims.y - 1) {
+                // Bottom Edge: Remove neighbors below
+                nidx[1] = -1;
+                nidx[6] = -1;
+                nidx[7] = -1;
+            }
+
             for (int n = 0; n < NN; n++) {
+                if (nidx[n] < 0) continue;
                 const int ni = nidx[n] % dims.x;
                 const int nj = nidx[n] / dims.x;
                 if (map->GetEffortAt(ni, nj) >= 0) {
@@ -108,6 +132,9 @@ void AStar::SetTerrainMap(GameMap& _map)
 
 bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
 {
+    PROFILE_FUNC();
+
+    path_cost = -1.f;
     int sInd = start.y * dims.x + start.x;
     int gInd = goal.y * dims.x + goal.x;
 
@@ -123,7 +150,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         node.f = FLT_MAX;
         node.g = FLT_MAX;
     }
-    path_cost = -1.f;
 
     // Start the algorithm with the start node
     nodes[sInd].g = 0;
@@ -169,9 +195,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
             // Get the cost to traverse this neighbor
             auto& neighbor = nodes[nidx];
             float tmp_g = current.g + Hval(current.loc, neighbor.loc) + neighbor.effort;
-            /// DEBUGGING
-            // printf("n %d (%d,%d): effort %.1f\n",
-            //         nidx, neighbor.loc.x, neighbor.loc.y, neighbor.effort);
 
             if (tmp_g < neighbor.g) {
                 // If this is the 'best' neighbor so far, update our score

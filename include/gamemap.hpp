@@ -14,11 +14,11 @@
 #include <cassert>
 #include <random>
 
-#ifndef W
-#define W 32
+#ifndef TW
+#define TW 32
 #endif
-#ifndef H
-#define H 32
+#ifndef TH
+#define TH 32
 #endif
 
 //! The terrain types available in my reduced tileset
@@ -35,7 +35,7 @@ enum TERRAIN_TYPE
 //! A single tile in our game map.
 struct Tile
 {
-    void Draw();
+    void Draw(const olc::vi2d& ofset);
 
     olc::PixelGameEngine* pge {nullptr};
 
@@ -155,11 +155,11 @@ public:
     int GetBaseIdx() { return 10; }
 
     //! Width and height (in px) of each terrain type in the overall tileset
-    const int NX = 3;            //!< Number of tiles in X direction
-    const int NY = 7;            //!< Number of tiles in Y direction
-    const int TW = NX * 32;      //!< Width of the tileset (pixels)
-    const int TH = NY * 32;      //!< Height of the tileset (pixels)
-    const int N_TILES = NX * NY; //!< Number of individual tiles in the tileset
+    const int TS_NX = 3;            //!< Number of tiles in X direction
+    const int TS_NY = 7;            //!< Number of tiles in Y direction
+    const int TS_W = TS_NX * TW;      //!< Width of the tileset (pixels)
+    const int TS_H = TS_NY * TH;      //!< Height of the tileset (pixels)
+    const int TS_N_TILES = TS_NX * TS_NY; //!< Number of individual tiles in the tileset
 
 private:
     olc::PixelGameEngine* pge {nullptr};
@@ -196,7 +196,7 @@ public:
 
     olc::vi2d GetDims() { return dims; }
 
-    void Draw();
+    void Draw(const olc::vi2d& offset);
 
     TERRAIN_TYPE GetTerrainAt(int ix, int iy);
     TERRAIN_TYPE GetTerrainAt(int idx);
