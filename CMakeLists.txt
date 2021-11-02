@@ -33,6 +33,7 @@ add_executable(planner-demo
     src/astar.cpp
     src/gamemap.cpp
     src/main.cpp
+    src/util.cpp
 )
 
 # Build pugixml as a static lib

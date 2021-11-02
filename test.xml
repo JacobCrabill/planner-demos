@@ -1,4 +1,8 @@
+<!--TODO: I don't think I'm a fan of XML after all. Switch to YAML.-->
+<!--method options: [A*|astar], [RRT*|rrtstar]-->
 <method>A*</method>
+<!--maptype options: static, procedural-->
+<maptype>static</maptype>
 <dims x='45' y='35'/>
 <map>
 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0

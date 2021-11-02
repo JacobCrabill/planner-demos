@@ -14,6 +14,10 @@
 #include "profile.hpp"
 #include "olcPixelGameEngine.h"
 
+#ifdef ENABLE_LIBNOISE
+double GetNoise(double nx, double ny);
+#endif
+
 enum PlannerMethod
 {
     ASTAR = 0,
@@ -21,17 +25,12 @@ enum PlannerMethod
     METHOD_MAX
 };
 
-static
-PlannerMethod MethodValFromString(const std::string& method)
+enum MapType
 {
-    std::string m = method;
-    std::transform(m.begin(), m.end(), m.begin(), ::tolower);
-
-    if (m == "a*" || m == "astar") return PlannerMethod::ASTAR;
-    if (m == "rrt*" || m == "rrtstar") return PlannerMethod::RRTSTAR;
-
-    return PlannerMethod::METHOD_MAX;
-}
+    STATIC = 0,
+    PROCEDURAL = 1,
+    MAPTYPE_MAX
+};
 
 /** Struct to contain game input / configuration */
 struct Config
@@ -40,4 +39,9 @@ struct Config
     olc::vi2d dims;
     std::string sMap;
     PlannerMethod method;
+    MapType mapType;
 };
+
+MapType MapTypeValFromString(const std::string& maptype);
+
+PlannerMethod MethodValFromString(const std::string& method);

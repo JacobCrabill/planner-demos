@@ -135,8 +135,7 @@ void GameMap::GenerateMap()
 
     tileSet = new TileSet(pge, "resources/lpc-terrains/reduced-tileset-1.png", layers, N_LAYERS);
 
-    // Load the map definition
-    std::stringstream f(config.sMap);
+    // Load / Create the map definition
     
     int32_t nx = config.dims.x;
     int32_t ny = config.dims.y;
@@ -147,19 +146,54 @@ void GameMap::GenerateMap()
     dims.y = ny - 1;
 
     std::vector<int32_t> texmap(n_tiles);
-    int32_t n_read = 0;
-    while (f >> texmap[n_read]) n_read++;
+
+    switch (config.mapType) {
+        case MapType::PROCEDURAL: {
+            #ifdef ENABLE_LIBNOISE
+            /// Experimenting with Perlin noise from libnoise
+            for (int i = 0; i < ny; i++) {
+                for (int j = 0; j < nx; j++) {
+                    double x = (double)j  / (double)nx;
+                    double y = (double)i  / (double)ny;
+                    double val = GetNoise(5.*x, 5.*y); // Noise value in range [0, 1]
+                    if (val <= .4) { val = 0; }
+                    else if (val <= .7) { val = 1; }
+                    else if (val <= .8) { val = 2; }
+                    else if (val <= .9) { val = 2; }
+                    else { val = 4; }
+
+                    texmap[i*nx + j] = (int32_t)val;
+                }
+            }
+            #else
+            assert("Unable to generate procedural map without libnoise\nSet ENABLE_LIBNOISE to build");
+            #endif
+            break;
+        }
+
+        case MapType::STATIC: {
+            std::stringstream f(config.sMap);
+            int32_t n_read = 0;
+            while (f >> texmap[n_read]) n_read++;
+
+            if (n_read != n_tiles) {
+                std::cout << "Error while reading texture map - unexpected EOF";
+                std::cout << std::endl;
+                mapLoaded = false;
+                return;
+            }
+            break;
+        }
+
+        default:
+            std::cout << "Unknown MapType option - expecting STATIC or PROCEDURAL." << std::endl;
+            exit(1);
+            break;
+    }
 
     // Constrain the inputs to be within our layer definitions
     for (uint32_t i = 0; i < texmap.size(); i++) {
         texmap[i] = std::min(std::max(0, texmap[i]), N_LAYERS - 1);
-    }
-
-    if (n_read < n_tiles) {
-        std::cout << "Error while reading texture map - unexpected EOF";
-        std::cout << std::endl;
-        mapLoaded = false;
-        return;
     }
 
     mapLoaded = true;

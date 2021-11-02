@@ -283,6 +283,7 @@ bool LoadInput(const std::string& fname, Config& config)
     config.fConfig = fname;
     config.dims.x = input.child("dims").attribute("x").as_int();
     config.dims.y = input.child("dims").attribute("y").as_int();
+    config.mapType = MapTypeValFromString(input.child_value("maptype"));
     config.sMap = input.child_value("map");
     config.method = MethodValFromString(input.child_value("method"));
     std::cout << "dims: " << config.dims.x << ", " << config.dims.y << std::endl;
