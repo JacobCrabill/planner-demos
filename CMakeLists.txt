@@ -19,8 +19,15 @@ if(ENABLE_PROFILING)
     add_definitions(-DINCLUDE_PROFILING)
 endif()
 
+option(ENABLE_LIBNOISE "Enable use of libnoise for procedurally-generated terrain" True)
+
+if(ENABLE_LIBNOISE)
+    add_definitions(-DENABLE_LIBNOISE)
+endif()
+
 include_directories(${PlannerDemo_SOURCE_DIR}/include/)
 include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/)
+include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/libnoise/include/)
 
 add_executable(planner-demo
     src/astar.cpp
@@ -30,6 +37,9 @@ add_executable(planner-demo
 
 # Build pugixml as a static lib
 add_subdirectory(3rdparty/pugixml)
+if(ENABLE_LIBNOISE)
+    add_subdirectory(3rdparty/libnoise)
+endif()
 
 add_custom_command(TARGET planner-demo POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -53,3 +63,6 @@ target_link_libraries(planner-demo "stdc++fs")
 #  ^- TODO: std::filesystem included by default in GCC > 9?
 
 target_link_libraries(planner-demo pugixml-static)
+if(ENABLE_LIBNOISE)
+    target_link_libraries(planner-demo noise)
+endif()
