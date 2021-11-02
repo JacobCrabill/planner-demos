@@ -3,4 +3,5 @@
 <method>A*</method>
 <!--maptype options: static, procedural-->
 <maptype>procedural</maptype>
+<seed>101</seed>
 <dims x='50' y='30'/>

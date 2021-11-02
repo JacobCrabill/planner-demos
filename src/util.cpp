@@ -12,7 +12,14 @@
 #include "noise/noise.h"
 
 noise::module::Perlin gen;
-double GetNoise(double nx, double ny) {
+
+void SetNoiseSeed(int seed)
+{
+    gen.SetSeed(seed);
+}
+
+double GetNoise(double nx, double ny)
+{
   // Rescale from -1.0:+1.0 to 0.0:1.0
   return gen.GetValue(nx, ny, 0) / 2.0 + 0.5;
 }

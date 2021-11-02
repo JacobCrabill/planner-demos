@@ -286,8 +286,9 @@ bool LoadInput(const std::string& fname, Config& config)
     config.mapType = MapTypeValFromString(input.child_value("maptype"));
     config.sMap = input.child_value("map");
     config.method = MethodValFromString(input.child_value("method"));
-    std::cout << "dims: " << config.dims.x << ", " << config.dims.y << std::endl;
-    std::cout << "map:" << config.sMap << std::endl;
+    if (input.child("seed")) {
+        config.seed = std::stoi(input.child_value("seed"));
+    }
 
     return true;
 }

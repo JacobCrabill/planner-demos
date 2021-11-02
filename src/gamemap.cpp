@@ -151,6 +151,7 @@ void GameMap::GenerateMap()
         case MapType::PROCEDURAL: {
             #ifdef ENABLE_LIBNOISE
             /// Experimenting with Perlin noise from libnoise
+            SetNoiseSeed(config.seed);
             for (int i = 0; i < ny; i++) {
                 for (int j = 0; j < nx; j++) {
                     double x = (double)j  / (double)nx;

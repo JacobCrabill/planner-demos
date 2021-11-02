@@ -15,6 +15,7 @@
 #include "olcPixelGameEngine.h"
 
 #ifdef ENABLE_LIBNOISE
+void SetNoiseSeed(int seed);
 double GetNoise(double nx, double ny);
 #endif
 
@@ -40,6 +41,7 @@ struct Config
     std::string sMap;
     PlannerMethod method;
     MapType mapType;
+    int seed;
 };
 
 MapType MapTypeValFromString(const std::string& maptype);
