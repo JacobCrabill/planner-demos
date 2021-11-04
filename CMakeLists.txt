@@ -28,6 +28,7 @@ endif()
 include_directories(${PlannerDemo_SOURCE_DIR}/include/)
 include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/)
 include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/libnoise/include/)
+include_directories(${PlannerDemo_SOURCE_DIR}/3rdparty/yaml-cpp/include/)
 
 add_executable(planner-demo
     src/astar.cpp
@@ -36,8 +37,8 @@ add_executable(planner-demo
     src/util.cpp
 )
 
-# Build pugixml as a static lib
-add_subdirectory(3rdparty/pugixml)
+# Build 3rd-party modules as static libraries
+add_subdirectory(3rdparty/yaml-cpp)
 if(ENABLE_LIBNOISE)
     add_subdirectory(3rdparty/libnoise)
 endif()
@@ -63,7 +64,7 @@ target_link_libraries(planner-demo ${X11_LIBRARIES})
 target_link_libraries(planner-demo "stdc++fs")
 #  ^- TODO: std::filesystem included by default in GCC > 9?
 
-target_link_libraries(planner-demo pugixml-static)
+target_link_libraries(planner-demo yaml-cpp)
 if(ENABLE_LIBNOISE)
     target_link_libraries(planner-demo noise)
 endif()

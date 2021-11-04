@@ -8,8 +8,9 @@
  */
 #pragma once
 
-#include <string>
 #include <algorithm>
+#include <string>
+#include <vector>
 
 #include "profile.hpp"
 #include "olcPixelGameEngine.h"
@@ -38,7 +39,7 @@ struct Config
 {
     std::string fConfig;
     olc::vi2d dims;
-    std::string sMap;
+    std::vector<int> map;
     PlannerMethod method;
     MapType mapType;
     int seed;

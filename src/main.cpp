@@ -8,7 +8,7 @@
 
 #include "main.hpp"
 
-#include "pugixml/src/pugixml.hpp"
+#include "yaml-cpp/yaml.h"
 
 bool gamePaused = false;
 
@@ -266,28 +266,26 @@ void AstarDemo::PrintOverlay()
 
 bool LoadInput(const std::string& fname, Config& config)
 {
-    std::ifstream f(fname, std::ifstream::in);
-
-    if (!f.is_open()) {
-        std::cout << "Unable to open: " << fname << std::endl;
-        return false;
-    }
-
-    pugi::xml_document input;
-    pugi::xml_parse_result res = input.load(f);
-    if (res.status != pugi::status_ok) {
-        std::cout << "Error parsing file " << fname << std::endl;
-        return false;
-    }
+    YAML::Node input = YAML::LoadFile(fname);
 
     config.fConfig = fname;
-    config.dims.x = input.child("dims").attribute("x").as_int();
-    config.dims.y = input.child("dims").attribute("y").as_int();
-    config.mapType = MapTypeValFromString(input.child_value("maptype"));
-    config.sMap = input.child_value("map");
-    config.method = MethodValFromString(input.child_value("method"));
-    if (input.child("seed")) {
-        config.seed = std::stoi(input.child_value("seed"));
+    config.dims.x = input["dims"]["x"].as<int>();
+    config.dims.y = input["dims"]["y"].as<int>();
+    config.mapType = MapTypeValFromString(input["maptype"].as<std::string>());
+    config.method = MethodValFromString(input["method"].as<std::string>());
+    
+    // Optional configuration
+    if (config.mapType == MapType::STATIC) {
+        if (input["map"]) {
+            config.map = input["map"].as<std::vector<int>>();
+        } else {
+            std::cout << "Static map requested but map not given" << std::endl;
+            exit(1);
+        }
+    }
+    
+    if (input["seed"]) {
+        config.seed = input["seed"].as<int>();
     }
 
     return true;
@@ -302,7 +300,7 @@ void print_usage(const std::string& arg0)
 
 int main(int argc, char* argv[])
 {
-    std::string fname("test.xml");
+    std::string fname("test-procedural.yaml");
     if (argc > 1) {
         fname = argv[1];
     }

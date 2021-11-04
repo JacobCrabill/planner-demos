@@ -167,27 +167,23 @@ void GameMap::GenerateMap()
                 }
             }
             #else
-            assert("Unable to generate procedural map without libnoise\nSet ENABLE_LIBNOISE to build");
+            printf("Unable to generate procedural map without libnoise\nSet ENABLE_LIBNOISE to build");
+            exit(1);
             #endif
             break;
         }
 
         case MapType::STATIC: {
-            std::stringstream f(config.sMap);
-            int32_t n_read = 0;
-            while (f >> texmap[n_read]) n_read++;
-
-            if (n_read != n_tiles) {
-                std::cout << "Error while reading texture map - unexpected EOF";
-                std::cout << std::endl;
-                mapLoaded = false;
-                return;
+            texmap = config.map;
+            if (texmap.size() != (size_t)n_tiles) {
+                printf("Invalid map input - expected %d tiles, got %d\n", n_tiles, texmap.size());
+                exit(1);
             }
             break;
         }
 
         default:
-            std::cout << "Unknown MapType option - expecting STATIC or PROCEDURAL." << std::endl;
+            printf("Unknown MapType option '%d'- expecting STATIC or PROCEDURAL\n", config.mapType);
             exit(1);
             break;
     }

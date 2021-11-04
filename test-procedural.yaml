@@ -1,0 +1,7 @@
+---
+method: astar # [A*|astar], [RRT*|rrtstar]
+maptype: procedural  # static, procedural
+dims:
+  x: 75
+  y: 75
+seed: 101
