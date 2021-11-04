@@ -15,11 +15,12 @@ set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wextra -Wconversion -Wno-unknown-pragmas")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
+option(ENABLE_PROFILING "Enable profiling of app - results saved to json." OFF)
 if(ENABLE_PROFILING)
     add_definitions(-DINCLUDE_PROFILING)
 endif()
 
-option(ENABLE_LIBNOISE "Enable use of libnoise for procedurally-generated terrain" True)
+option(ENABLE_LIBNOISE "Enable use of libnoise for procedurally-generated terrain" ON)
 
 if(ENABLE_LIBNOISE)
     add_definitions(-DENABLE_LIBNOISE)
