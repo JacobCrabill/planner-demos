@@ -21,7 +21,12 @@ void Tile::Draw(const olc::vi2d& offset)
     if (pge) {
         // Use the supplied texture if we have it
         if (dTexture) {
-            pge->DrawDecal(vScreenPos - offset, dTexture);
+            const olc::vf2d pos = vScreenPos - offset;
+            if (pos.x + TW < 0 || pos.x >= pge->ScreenWidth() ||
+                pos.y + TH < 0 || pos.y >= pge->ScreenHeight()) {
+                return;
+            }
+            pge->DrawDecal(pos, dTexture);
 
         } else {
             // Otherwise draw a simple filled rectangle

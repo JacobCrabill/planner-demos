@@ -74,58 +74,6 @@ void AStar::SetTerrainMap(GameMap& _map)
         node.idx = cidx;
         node.effort = map->GetEffortAt(i, j);
 
-        /* Setup neighbors list */
-        if (node.effort >= 0) {
-
-            // T/B/L/R; TL/TR/BL/BR
-            const int NN = 8;
-            int nidx[NN] = {
-                cidx - dims.x, cidx + dims.x, cidx - 1, cidx + 1,
-                cidx - dims.x - 1, cidx - dims.x + 1,
-                cidx + dims.x - 1, cidx + dims.x + 1
-            };
-
-            if (i == 0) {
-                // Left Edge: Remove neighbors to the left
-                nidx[2] = -1;
-                nidx[4] = -1;
-                nidx[6] = -1;
-            }
-
-            if (j == 0) {
-                // Top Edge: Remove neighbors above
-                nidx[0] = -1;
-                nidx[4] = -1;
-                nidx[5] = -1;
-            }
-
-            if (i == dims.x - 1) {
-                // Right Edge: Remove neighbors to the right
-                nidx[3] = -1;
-                nidx[5] = -1;
-                nidx[7] = -1;
-            }
-
-            if (j == dims.y - 1) {
-                // Bottom Edge: Remove neighbors below
-                nidx[1] = -1;
-                nidx[6] = -1;
-                nidx[7] = -1;
-            }
-
-            for (int n = 0; n < NN; n++) {
-                if (nidx[n] < 0) continue;
-                const int ni = nidx[n] % dims.x;
-                const int nj = nidx[n] / dims.x;
-                if (map->GetEffortAt(ni, nj) >= 0) {
-                    node.neighbors.push_back(nidx[n]);
-                }
-            }
-
-        } else {
-            // Barrier / Impassable
-        }
-
         cidx++;
     }
 }
@@ -140,10 +88,6 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
 
     if (sInd < 0 || (size_t)sInd > nodes.size()) return false;
     if (gInd < 0 || (size_t)gInd > nodes.size()) return false;
-
-    /// DEBUGGING
-    // printf("===Begin A*===\nStart/Goal: (%d,%d), (%d,%d)\n",
-    //         start.x, start.y, goal.x, goal.y);
 
     // Reset all 'f' and 'g' scores for the A* alg.
     for (auto& node : nodes) {
@@ -191,7 +135,53 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
             return true;
         }
 
-        for (auto nidx : current.neighbors) {
+        if (current.effort < 0) continue;
+
+        // Get the indices of the current node's neighbors
+        // T/B/L/R; TL/TR/BL/BR
+        const int NN = 8;
+        int neighbors[NN] = {
+            id - dims.x, id + dims.x, id - 1, id + 1,
+            id - dims.x - 1, id - dims.x + 1,
+            id + dims.x - 1, id + dims.x + 1
+        };
+
+        // Handle boundary conditions
+        const int ci = current.loc.x;
+        const int cj = current.loc.y;
+        if (ci == 0) {
+             // Left Edge: Remove neighbors to the left
+             neighbors[2] = -1;
+             neighbors[4] = -1;
+             neighbors[6] = -1;
+         }
+         if (cj == 0) {
+             // Top Edge: Remove neighbors above
+             neighbors[0] = -1;
+             neighbors[4] = -1;
+             neighbors[5] = -1;
+         }
+         if (ci == dims.x - 1) {
+             // Right Edge: Remove neighbors to the right
+             neighbors[3] = -1;
+             neighbors[5] = -1;
+             neighbors[7] = -1;
+         }
+         if (cj == dims.y - 1) {
+             // Bottom Edge: Remove neighbors below
+             neighbors[1] = -1;
+             neighbors[6] = -1;
+             neighbors[7] = -1;
+         }
+
+        for (int n = 0; n < NN; n++) {
+            const int nidx = neighbors[n];
+            const int ni = nidx % dims.x;
+            const int nj = nidx / dims.x;
+            if (ni < 0 || ni >= dims.x || nj < 0 || nj >= dims.y || map->GetEffortAt(ni, nj) < 0) {
+                continue;
+            }
+
             // Get the cost to traverse this neighbor
             auto& neighbor = nodes[nidx];
             float tmp_g = current.g + Hval(current.loc, neighbor.loc) + neighbor.effort;
