@@ -274,7 +274,6 @@ bool LoadInput(const std::string& fname, Config& config)
     config.mapType = MapTypeValFromString(input["maptype"].as<std::string>());
     config.method = MethodValFromString(input["method"].as<std::string>());
     
-    // Optional configuration
     if (config.mapType == MapType::STATIC) {
         if (input["map"]) {
             config.map = input["map"].as<std::vector<int>>();
@@ -282,10 +281,23 @@ bool LoadInput(const std::string& fname, Config& config)
             std::cout << "Static map requested but map not given" << std::endl;
             exit(1);
         }
-    }
-    
-    if (input["seed"]) {
-        config.seed = input["seed"].as<int>();
+
+    } else {
+        // --- Configuration for Procedural Map Generation ---
+        config.noiseSeed = 0.;
+        if (input["noiseSeed"]) {
+            config.noiseSeed = input["noiseSeed"].as<int>();
+        }
+
+        config.noiseScale = 5.;
+        if (input["noiseScale"]) {
+            config.noiseScale = input["noiseScale"].as<double>();
+        }
+
+        config.terrainWeights = {.4f, .2f, .2f, .1, .1f};
+        if (input["terrainWeights"]) {
+            config.terrainWeights = input["terrainWeights"].as<std::vector<float>>();
+        }
     }
 
     return true;

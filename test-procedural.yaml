@@ -4,4 +4,11 @@ maptype: procedural  # static, procedural
 dims:
   x: 100
   y: 100
-seed: 401
+noiseSeed: 401
+noiseScale: 10
+terrainWeights:
+  - 3   # water
+  - 3   # grass
+  - 1.5  # dirt
+  - .5  # gravel
+  - 2   # pavers

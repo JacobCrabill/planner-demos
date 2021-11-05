@@ -21,6 +21,7 @@ void Tile::Draw(const olc::vi2d& offset)
     if (pge) {
         // Use the supplied texture if we have it
         if (dTexture) {
+            // Only draw the tile if it's actually on the screen
             const olc::vf2d pos = vScreenPos - offset;
             if (pos.x + TW < 0 || pos.x >= pge->ScreenWidth() ||
                 pos.y + TH < 0 || pos.y >= pge->ScreenHeight()) {
@@ -70,9 +71,9 @@ TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const int* typeM
         for (auto& spr : tiles[i]) {
             spr = new olc::Sprite(TS_W, TS_H);
             pge->SetDrawTarget(spr);
-            const int ox = 32 * (IX + n % 3);
-            const int oy = 32 * (n / 3);
-            pge->DrawPartialSprite(0, 0, tileset, ox, oy, 32, 32);
+            const int ox = TW * (IX + n % 3);
+            const int oy = TH * (n / 3);
+            pge->DrawPartialSprite(0, 0, tileset, ox, oy, TW, TH);
             n++;
         }
     }
@@ -155,17 +156,36 @@ void GameMap::GenerateMap()
     switch (config.mapType) {
         case MapType::PROCEDURAL: {
             #ifdef ENABLE_LIBNOISE
+            // Configure the relative amounts of each terrain type
+            if (config.terrainWeights.size() != N_LAYERS) {
+                printf("ERROR: Incorrect number of terrain weights given (expected %d, got %d)\n", N_LAYERS, config.terrainWeights.size());
+                config.terrainWeights.assign(N_LAYERS, 1.f);
+            }
+
+            // Normalize the total amount to 1
+            float sum = std::reduce(config.terrainWeights.begin(), config.terrainWeights.end());
+            for (auto &w : config.terrainWeights) {
+                w /= sum;
+                printf("%f\n",w);
+            }
+
+            // Compute the cumulative sums.  These are used to split the range [0, 1] into regions.
+            std::vector<float> wsum = config.terrainWeights;
+            for (int i = 1; i < wsum.size(); i++) {
+                wsum[i] += wsum[i - 1];
+            }
+            
             /// Experimenting with Perlin noise from libnoise
-            SetNoiseSeed(config.seed);
+            SetNoiseSeed(config.noiseSeed);
             for (int i = 0; i < ny; i++) {
                 for (int j = 0; j < nx; j++) {
                     double x = (double)j  / (double)nx;
                     double y = (double)i  / (double)ny;
-                    double val = GetNoise(5.*x, 5.*y); // Noise value in range [0, 1]
-                    if (val <= .4) { val = 0; }
-                    else if (val <= .7) { val = 1; }
-                    else if (val <= .8) { val = 2; }
-                    else if (val <= .9) { val = 2; }
+                    double val = GetNoise(config.noiseScale*x, config.noiseScale*y); // Noise value in range [0, 1]
+                    if (val <= wsum[0]) { val = 0; }
+                    else if (val <= wsum[1]) { val = 1; }
+                    else if (val <= wsum[2]) { val = 2; }
+                    else if (val <= wsum[3]) { val = 3; }
                     else { val = 4; }
 
                     texmap[i*nx + j] = (int32_t)val;

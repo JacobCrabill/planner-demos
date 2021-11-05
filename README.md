@@ -1,5 +1,7 @@
-# Planning Demos in 2D
+# Path-Planning Demos in 2D
+![](resources/initial-demo.gif)
 
+## Background
 I needed a fun C++ coding project; I wanted to learn simple arcade-style graphics; and I wanted a framework to try out different path-planning algorithms.  This is the resultant WIP.
 
 ## To Build:
@@ -33,7 +35,7 @@ map: [  # Terrain map
     0, 0, 1, 0, 0,
     0, 1, 1, 1, 0,
     0, 1, 1, 0, 0
-]    
+]  
 ```
 
 Procedural (run-time) map generation:
@@ -44,8 +46,12 @@ maptype: procedural
 dims:
   x: 100
   y: 100
-seed: 101  # Seed value for the noise algorithm used to generate the map
+noiseSeed: 101   # Seed value for the noise algorithm used to generate the map
+noiseScale: 5    # Scale value / 'zoom level' for the noise algorithm
+terrainWeights:  # Relative amount of each terrain type generated
+  - 3    # water
+  - 3    # grass
+  - 1.5  # dirt
+  - 0.5  # gravel
+  - 2    # pavers
 ```
-
-## Demo
-![](resources/initial-demo.gif)

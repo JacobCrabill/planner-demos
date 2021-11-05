@@ -40,9 +40,11 @@ struct Config
     std::string fConfig;
     olc::vi2d dims;
     std::vector<int> map;
+    std::vector<float> terrainWeights;
     PlannerMethod method;
     MapType mapType;
-    int seed;
+    int noiseSeed;
+    double noiseScale;
 };
 
 MapType MapTypeValFromString(const std::string& maptype);
