@@ -50,3 +50,5 @@ struct Config
 MapType MapTypeValFromString(const std::string& maptype);
 
 PlannerMethod MethodValFromString(const std::string& method);
+
+bool LoadInput(const std::string& fname, Config& config);

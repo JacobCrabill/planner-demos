@@ -3263,7 +3263,6 @@ namespace olc
 
 		void DrawLayerQuad(const olc::vf2d& offset, const olc::vf2d& scale, const olc::Pixel tint) override
 		{
-			PROFILE_FUNC();
 			glBegin(GL_QUADS);
 			glColor4ub(tint.r, tint.g, tint.b, tint.a);
 			glTexCoord2f(0.0f * scale.x + offset.x, 1.0f * scale.y + offset.y);

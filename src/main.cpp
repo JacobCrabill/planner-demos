@@ -8,8 +8,6 @@
 
 #include "main.hpp"
 
-#include "yaml-cpp/yaml.h"
-
 bool gamePaused = false;
 
 bool AstarDemo::OnUserCreate()
@@ -264,48 +262,8 @@ void AstarDemo::PrintOverlay()
     DrawStringDecal({5, 5 + (int)gamePaused*16.f}, ss.str(), olc::RED, {2.f, 2.f});
 }
 
-bool LoadInput(const std::string& fname, Config& config)
-{
-    YAML::Node input = YAML::LoadFile(fname);
-
-    config.fConfig = fname;
-    config.dims.x = input["dims"]["x"].as<int>();
-    config.dims.y = input["dims"]["y"].as<int>();
-    config.mapType = MapTypeValFromString(input["maptype"].as<std::string>());
-    config.method = MethodValFromString(input["method"].as<std::string>());
-    
-    if (config.mapType == MapType::STATIC) {
-        if (input["map"]) {
-            config.map = input["map"].as<std::vector<int>>();
-        } else {
-            std::cout << "Static map requested but map not given" << std::endl;
-            exit(1);
-        }
-
-    } else {
-        // --- Configuration for Procedural Map Generation ---
-        config.noiseSeed = 0.;
-        if (input["noiseSeed"]) {
-            config.noiseSeed = input["noiseSeed"].as<int>();
-        }
-
-        config.noiseScale = 5.;
-        if (input["noiseScale"]) {
-            config.noiseScale = input["noiseScale"].as<double>();
-        }
-
-        config.terrainWeights = {.4f, .2f, .2f, .1, .1f};
-        if (input["terrainWeights"]) {
-            config.terrainWeights = input["terrainWeights"].as<std::vector<float>>();
-        }
-    }
-
-    return true;
-}
-
 void print_usage(const std::string& arg0)
 {
-    std::cout << "Invalid input file" << std::endl;
     std::cout << "Usage:" << std::endl;
     std::cout << "    " << arg0 << " <input_config>" << std::endl;
 }
