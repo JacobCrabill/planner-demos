@@ -23,8 +23,8 @@ void Tile::Draw(const olc::vi2d& offset)
         if (dTexture) {
             // Only draw the tile if it's actually on the screen
             const olc::vf2d pos = vScreenPos - offset;
-            if (pos.x + TW < 0 || pos.x >= pge->ScreenWidth() ||
-                pos.y + TH < 0 || pos.y >= pge->ScreenHeight()) {
+            if (pos.x + TW < 0 || pos.x >= (float)pge->ScreenWidth() ||
+                pos.y + TH < 0 || pos.y >= (float)pge->ScreenHeight()) {
                 return;
             }
             pge->DrawDecal(pos, dTexture);
@@ -38,7 +38,7 @@ void Tile::Draw(const olc::vi2d& offset)
     }
 }
 
-TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const int* typeMap, uint8_t nTypes) :
+TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const uint8_t* typeMap, uint8_t nTypes) :
     pge(_pge),
     topoMap({
         {{0, 1, 2, 3}, 10},
@@ -64,7 +64,7 @@ TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const int* typeM
 
     // Load each individual terrain tile into its own sprite, for each terrain type
     tiles.resize(nTypes);
-    for (int i = 0; i < nTypes; i++) {
+    for (uint8_t i = 0; i < nTypes; i++) {
         tiles[i].resize(3 * 7);
         const int IX = typeMap[i] * TS_NX;
         int n = 0;
@@ -93,7 +93,7 @@ olc::Sprite* TileSet::GetBaseTile(uint8_t type)
     return tiles[type][3 * j + i];
 }
 
-int TileSet::GetRandomBaseTile()
+int TileSet::GetRandomBaseTile(const float rval)
 {
     // We have 1 plain tile and 3 'decorative' versions to choose from
     // Weight the plain one more so that it's not overwhelmingly decorative
@@ -106,7 +106,13 @@ int TileSet::GetRandomBaseTile()
     }
 
     // Use thresholding to assign our desired probabilities to the normal distribution
-    int r = rand() % wSum;
+    int r;
+    if (rval < 0) {
+        r = rand() % wSum;
+    } else {
+        r = rval * wSum;
+    }
+
     for (int i = 0; i < 4; i++) {
         if (r < baseTileWgts[i]) {
             return baseTileIds[i];
@@ -119,20 +125,110 @@ int TileSet::GetRandomBaseTile()
     return baseTileIds[0];
 }
 
+olc::Sprite* TileSet::GetDecorativeBaseTileFor(uint8_t type, uint8_t bt)
+{
+    const int baseTileIds[4] = {10, 18, 19, 20};
+    int tidx = baseTileIds[bt];
+    return GetTileAt(type, tidx);
+}
+
 olc::Sprite* TileSet::GetTileAt(uint8_t type, int idx)
 {
     return tiles[type][idx];
 }
 
-int TileSet::GetIdxFromTopology(const std::vector<int>& topo)
+int TileSet::GetIdxFromTopology(const std::vector<uint8_t>& topo)
 {
-    if (topo.size() == 0) return -1;
+    // See header file for detils of how topoMap was derived
+    if (topo.size() == 0 || topo.size() > 4) return -1;
 
     return topoMap.at(topo);
 }
 
+void TextureCache::Setup(TileSet* tset)
+{
+    tileSet = tset;
+    n_layers = tileSet->GetNTypes();
+
+    // We need to at least pre-generate our collection of decorative base tiles
+    baseTiles.resize(n_layers);
+
+    const std::vector<int> btIds = tileSet->GetDecorativeBaseTilesIndices();
+    for (uint8_t L = 0; L < n_layers; L++) {
+        for (int bt : btIds) {
+            baseTiles[L][bt] = new olc::Decal(tileSet->GetTileAt(L, bt));
+        }
+    }
+}
+
+bool TextureCache::Count(const std::array<uint8_t, 4>& bcs)
+{
+    return cache.count(bcs) || IsBaseTile(bcs);
+}
+
+bool TextureCache::IsBaseTile(const std::array<uint8_t, 4>& bcs)
+{
+    const int bc0 = bcs[0];
+    for (uint8_t i = 1; i < 4; i++) {
+        if (bcs[i] != bc0) {
+            return false;
+        }
+    }
+
+    return true;
+}
+olc::Decal* TextureCache::Get(const std::array<uint8_t, 4>& bcs, int ix, int iy)
+{
+    /// TODO: I think this whole cache-with-randomness thing is overly convoluted.  Rethink later.
+    if (IsBaseTile(bcs)) {
+        // Use a nice, deterministic "random number" to get the "random" tile
+        float rval = SimpleRand(ix, iy);
+        // float rval = GetNoise((ix % 256) / 256., (iy % 256) / 256.);
+        int t = tileSet->GetRandomBaseTile(rval); //GetNoise(50.*ix, 50.*iy));
+        return baseTiles[bcs[0]].at(t);
+    }
+
+    // Note: This should throw an error if we improperly try to get a tile that doesn't exist
+    return cache.at(bcs);
+};
+
+void TextureCache::Set(const std::array<uint8_t, 4>& bcs, olc::Decal* dec)
+{
+    if (IsBaseTile(bcs)) return;
+
+    cache[bcs] = dec;
+}
+
+GameMap::~GameMap()
+{
+    if (tileSet) {
+        delete tileSet;
+    }
+}
+
 void GameMap::GenerateMap()
 {
+    /**
+     * TODO:
+     * 
+     * Right now, we're generating the _entire_ map, which includes:
+     * - A sprite for every single tile
+     * - Building said sprite from each tile's boundary conditions (BCs)
+     * - No caching of duplicate sprites or boundary conditions
+     * 
+     * In order to scale to an "infinite" world, we must change how we do things:
+     * - **(DONE)** Display only the sprites within the screen area
+     * - Generate only the sprites we need to display
+     * - Create/Delete tiles as the map scrolls
+     *   - Tiles will no longer be in a flattened 2D array; will need to push/pop tiles
+     *     from a generic container and use an index map to look up a row,col
+     * - Cache previously-generated sprite data (up to some limit...?)
+     *   - Specifically, map the layers/BCs to a pre-generated sprite, and reuse that
+     *     for any other tiles that have the same layer BCs
+     * - Optimize the sprite generation...
+     */
+    PROFILE_FUNC();
+
     // Load the terrain-tile assets
     if (tileSet) {
         delete tileSet;
@@ -140,6 +236,8 @@ void GameMap::GenerateMap()
     }
 
     tileSet = new TileSet(pge, "resources/lpc-terrains/reduced-tileset-1.png", layers, N_LAYERS);
+
+    texCache.Setup(tileSet);
 
     // Load / Create the map definition
     
@@ -151,14 +249,15 @@ void GameMap::GenerateMap()
     dims.x = nx - 1;
     dims.y = ny - 1;
 
-    std::vector<int32_t> texmap(n_tiles);
+    std::vector<uint8_t> texmap(n_tiles);
 
     switch (config.mapType) {
         case MapType::PROCEDURAL: {
-            #ifdef ENABLE_LIBNOISE
+#ifdef ENABLE_LIBNOISE
+            PROFILE("Perlin MapGen");
             // Configure the relative amounts of each terrain type
             if (config.terrainWeights.size() != N_LAYERS) {
-                printf("ERROR: Incorrect number of terrain weights given (expected %d, got %d)\n", N_LAYERS, config.terrainWeights.size());
+                printf("ERROR: Incorrect number of terrain weights given (expected %d, got %lu)\n", N_LAYERS, config.terrainWeights.size());
                 config.terrainWeights.assign(N_LAYERS, 1.f);
             }
 
@@ -166,12 +265,11 @@ void GameMap::GenerateMap()
             float sum = std::reduce(config.terrainWeights.begin(), config.terrainWeights.end());
             for (auto &w : config.terrainWeights) {
                 w /= sum;
-                printf("%f\n",w);
             }
 
             // Compute the cumulative sums.  These are used to split the range [0, 1] into regions.
             std::vector<float> wsum = config.terrainWeights;
-            for (int i = 1; i < wsum.size(); i++) {
+            for (uint32_t i = 1; i < wsum.size(); i++) {
                 wsum[i] += wsum[i - 1];
             }
             
@@ -188,20 +286,20 @@ void GameMap::GenerateMap()
                     else if (val <= wsum[3]) { val = 3; }
                     else { val = 4; }
 
-                    texmap[i*nx + j] = (int32_t)val;
+                    texmap[i*nx + j] = (uint8_t)val;
                 }
             }
-            #else
+#else
             printf("Unable to generate procedural map without libnoise\nSet ENABLE_LIBNOISE to build");
             exit(1);
-            #endif
+#endif
             break;
         }
 
         case MapType::STATIC: {
             texmap = config.map;
             if (texmap.size() != (size_t)n_tiles) {
-                printf("Invalid map input - expected %d tiles, got %d\n", n_tiles, texmap.size());
+                printf("Invalid map input - expected %d tiles, got %lu\n", n_tiles, texmap.size());
                 exit(1);
             }
             break;
@@ -215,7 +313,7 @@ void GameMap::GenerateMap()
 
     // Constrain the inputs to be within our layer definitions
     for (uint32_t i = 0; i < texmap.size(); i++) {
-        texmap[i] = std::min(std::max(0, texmap[i]), N_LAYERS - 1);
+        texmap[i] = (uint8_t)std::min(std::max(0, (int)texmap[i]), N_LAYERS - 1);
     }
 
     mapLoaded = true;
@@ -224,7 +322,7 @@ void GameMap::GenerateMap()
         const int32_t ix = i % dims.x; // x == column
         const int32_t iy = i / dims.x; // y == row
         const int32_t tidx = (ix + 1) + (iy + 1) * nx; // Index in full world input
-        const int layer = texmap[tidx];
+        const uint8_t layer = texmap[tidx];
         const TERRAIN_TYPE tt = static_cast<TERRAIN_TYPE>(layers[layer]);
         map[i].layer = layer;
         map[i].fEffort = teffort.at(tt);
@@ -237,15 +335,15 @@ void GameMap::GenerateMap()
         map[i].pge = pge;
     }
 
-    // Use a neighborhood of 4 values to determine each tile's sprite
+    // Use a neighborhood of 4 values to determine each tile's sprite (See header file)
     // Note that the sprite will then be offset by 1/2 W, H in order for
     // the resultant terrain to line up with the given inputs
     for (int i = 0; i < n_grid; i++) {
-        const int myL = map[i].layer;
-        std::array<int, 4> bcs = {myL, myL, myL, myL};
+        const uint8_t myL = map[i].layer;
+        std::array<uint8_t, 4> bcs = {myL, myL, myL, myL};
         const int ix = map[i].vTileCoord.x;
         const int iy = map[i].vTileCoord.y;
-    
+
         // Copy the neighborhood
         if (ix < nx && iy < ny) {
             bcs[0] = texmap[ix + (iy * nx)];
@@ -253,34 +351,39 @@ void GameMap::GenerateMap()
             bcs[2] = texmap[ix + 1 + (iy + 1) * nx];
             bcs[3] = texmap[ix + (iy + 1) * nx];
         }
-        // Create our mapping for the multi-layer tile generation
-        std::array<std::vector<int>, N_LAYERS> laymap;
-        for (int L = 0; L < N_LAYERS; L++) {
-            for (int b = 0; b < 4; b++) {
-                if (bcs[b] == L) {
-                    // If this entry is the current layer, put its index into the map
-                    laymap[L].push_back(b);
+
+        // Check our texture cache
+        // TODO: How do we now add "spice" to the plain parts of the map?
+        //       (Swap out plain base tiles with random decorative variants)
+        if (!texCache.Count(bcs)) {
+            // Create our mapping for the multi-layer tile generation
+            std::array<std::vector<uint8_t>, N_LAYERS> laymap;
+            for (uint8_t L = 0; L < N_LAYERS; L++) {
+                for (uint8_t b = 0; b < 4; b++) {
+                    if (bcs[b] == L) {
+                        // If this entry is the current layer, put its index into the map
+                        laymap[L].push_back(b);
+                    }
                 }
             }
-        }
 
-        olc::Sprite* tex = GetEdgeTileFor(laymap);
-        map[i].dTexture = new olc::Decal(tex);
-        pge->SetDrawTarget(nullptr);
-        pge->DrawDecal({0.f, 0.f}, map[i].dTexture);
+            texCache.Set(bcs, new olc::Decal(GetEdgeTileFor(laymap)));
+        }
+        map[i].dTexture = texCache.Get(bcs, ix, iy);
     }
 };
 
-olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laymap)
+olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<uint8_t>, N_LAYERS> laymap)
 {
     // Returns a sprite created by layering the appropriate terrain types into
     // a single sprite, in order
+    PROFILE_FUNC();
   
-    // For each available layer, map it's list of indices
+    // For each available layer, map its list of indices
     // to the matching tile index from its tileset
     // Default to -1 if that layer is unused
     std::array<int, N_LAYERS> tIdx;
-    for (int L = 0; L < N_LAYERS; L++) {
+    for (uint8_t L = 0; L < N_LAYERS; L++) {
         if (laymap[L].size() > 0) {
             tIdx[L] = tileSet->GetIdxFromTopology(laymap[L]);
         } else {
@@ -290,6 +393,7 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
 
     for (auto& t : tIdx) {
         // Add some spice - randomize all the 'plain' tiles
+        /// TODO: This will have to be changed once we start adding/removing tiles dynamically
         if (t == tileSet->GetBaseIdx()) {
             t = tileSet->GetRandomBaseTile();
         }
@@ -299,9 +403,9 @@ olc::Sprite* GameMap::GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laym
     pge->SetPixelMode(olc::Pixel::MASK);
     pge->SetDrawTarget(spr);
 
-    for (uint8_t i = 0; i < N_LAYERS; i++) {
-        if (tIdx[i] >= 0 && tIdx[i] < tileSet->TS_N_TILES) {
-            pge->DrawSprite(0, 0, tileSet->GetTileAt(i, tIdx[i]));
+    for (uint8_t L = 0; L < N_LAYERS; L++) {
+        if (tIdx[L] >= 0 && tIdx[L] < tileSet->TS_N_TILES) {
+            pge->DrawSprite(0, 0, tileSet->GetTileAt(L, tIdx[L]));
         }
     }
 

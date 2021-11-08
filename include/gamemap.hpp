@@ -43,7 +43,7 @@ struct Tile
     olc::vi2d vTileCoord;           //!< The (i,j) coordinates of this tile within the game map
     olc::vf2d vScreenPos;           //!< The location _of the sprite_ in the screen frame
     float fEffort {0.f};            //!< The effort required to cross this tile
-    int layer {0};                  //!< Which terrain-style layer this tile is    
+    uint8_t layer {0};              //!< Which terrain-style layer this tile is    
 };
 
 /**
@@ -56,10 +56,10 @@ class TileSet
 public:
     /**
      * @param pge Pointer to the parent PixelGameEngine
-     * @param fname Sprinte file containing an array of tilesets for all terrain types
+     * @param fname Sprite file containing an array of tilesets for all terrain types
      * @param typeMap Remapping of game layers to terrain types from the tileset
      */
-    TileSet(olc::PixelGameEngine* pge, std::string fname, const int* typeMap, uint8_t nTypes);
+    TileSet(olc::PixelGameEngine* pge, std::string fname, const uint8_t* typeMap, uint8_t nTypes);
 
     ~TileSet();
 
@@ -68,12 +68,22 @@ public:
 
     olc::Sprite* GetBaseTile(uint8_t type);
     olc::Sprite* GetTileAt(uint8_t type, int idx);
+    uint8_t GetNTypes() { return tiles.size(); }
 
     /** 
      * Get a random 'plain terrain' tile, allowing us to add some variety to
      * otherwise boring regions.
+     * 
+     * @param rval: Optional random number to use in range [0, 1]
      */
-    int GetRandomBaseTile();
+    int GetRandomBaseTile(const float rval = -1.f);
+
+    //! Number of unique, decorative base-tile sprites
+    int GetNBaseTiles() { return 4; }
+
+    std::vector<int> GetDecorativeBaseTilesIndices() { return std::vector<int> {10, 18, 19, 20}; };
+
+    olc::Sprite* GetDecorativeBaseTileFor(uint8_t type, uint8_t bt);
 
     /**
      * @brief Get the required tile ID for the input topology.
@@ -149,7 +159,7 @@ public:
      *     O O => Topology for X: {}
      *     O O    Tile Index: N/A
      */
-    int GetIdxFromTopology(const std::vector<int>& topo);
+    int GetIdxFromTopology(const std::vector<uint8_t>& topo);
 
     //! The index of a 'plain' tile of this terrain type
     int GetBaseIdx() { return 10; }
@@ -165,7 +175,7 @@ private:
     olc::PixelGameEngine* pge {nullptr};
 
     //! Map from the topology of the terrain input to a terrain tile index.
-    const std::map<std::vector<int>, int> topoMap;
+    const std::map<std::vector<uint8_t>, int> topoMap;
 
     int GetOTLIdx() { return 6; }  //!< ID for Overlay | Top-Left
     int GetOTCIdx() { return 7; }  //!< ID for Overlay | Top-Center
@@ -179,16 +189,44 @@ private:
     int GetSingletIdx() { return 3 * (rand() % 2); } //!< ID(s) for Single-tile overlay
 };
 
+class TextureCache
+{
+    // Helper class to allow us to store a cache of pre-generated
+    // textures, but also allow us to add some randomness to the plain
+    // base textures
+public:
+    TextureCache() = default;
+
+    void Setup(TileSet* tset);
+    
+    //! Check if  tile exists for these BCs
+    bool Count(const std::array<uint8_t, 4>& bcs);
+
+    //! Get the tile for the BCs. The tile must already exist.
+    olc::Decal* Get(const std::array<uint8_t, 4>& bcs, int ix, int iy);
+
+    void Set(const std::array<uint8_t, 4>& bcs, olc::Decal* dec);
+
+private:
+    TileSet* tileSet {nullptr};
+    uint8_t n_layers{0};
+
+    std::map<std::array<uint8_t, 4>, olc::Decal*> cache;
+    std::vector<std::map<int, olc::Decal*>> baseTiles; // One for each terrain type
+
+    bool IsBaseTile(const std::array<uint8_t, 4>& bcs);
+};
+
 //! Class to load the desired map terrain, a tileset, and display the map
 class GameMap
 {
 public:
     GameMap(const Config& _config) : config(_config) {};
 
+    ~GameMap();
+
     /**
      * @brief Load the text-based map of terrain for the game
-     * 
-     * TODO: The input file format is too simplistic. Make it better / use YAML.
      */
     void GenerateMap();
 
@@ -213,18 +251,21 @@ private:
     olc::PixelGameEngine* pge {nullptr};
 
     //! Our terrain layers
-    static constexpr int N_LAYERS = 5;
-    const int layers[N_LAYERS] {WATER, GRASS, DIRT, GRAVEL, PAVERS};
+    static constexpr uint8_t N_LAYERS = 5;
+    const uint8_t layers[N_LAYERS] {WATER, GRASS, DIRT, GRAVEL, PAVERS};
     TileSet* tileSet {nullptr};
 
     const std::map<TERRAIN_TYPE, float> teffort {
         {GRASS, 3.f}, {WATER, -1.f}, {DIRT, 10.f}, {GRAVEL, 20.f}, {PAVERS, 1.f}
     };
 
+    // std::map<std::array<uint8_t, 4>, olc::Decal*> texCache;
+    TextureCache texCache;
+
     /**
      * @brief Create a layered sprite for the topology of our 2x2 region
      * 
      * @param laymap The (btm-to-top) list of terrain types for each layer
      */
-    olc::Sprite* GetEdgeTileFor(std::array<std::vector<int>, N_LAYERS> laymap);
+    olc::Sprite* GetEdgeTileFor(std::array<std::vector<uint8_t>, N_LAYERS> laymap);
 };

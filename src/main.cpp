@@ -196,8 +196,6 @@ void AstarDemo::UpdateCursor()
     mouse = GetMousePos();
     wMouse = mouse + viewOffset;
 
-    olc::vf2d tileOffset = {fmodf(viewOffset.x, (float)TW), fmodf(viewOffset.y, (float)TH)};
-
     // Get the map tile at the mouse location, and its top-left coords
     // The current tile will always be used as the start location
     mTileIJ = {(int)wMouse.x / TW, (int)wMouse.y / TH};

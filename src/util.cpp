@@ -27,6 +27,15 @@ double GetNoise(double nx, double ny)
 }
 #endif // ENABLE_LIBNOISE
 
+float SimpleRand(int x, int y)
+{
+    srand(x);
+    for (int i = 0; i < y; i++) {
+        rand();
+    }
+    return (float)rand() / RAND_MAX;
+}
+
 MapType MapTypeValFromString(const std::string& maptype)
 {
     std::string m = maptype;
@@ -68,9 +77,15 @@ bool LoadInput(const std::string& fname, Config& config)
     config.mapType = MapTypeValFromString(input["maptype"].as<std::string>());
     config.method = MethodValFromString(input["method"].as<std::string>());
 
+    if (config.method != PlannerMethod::ASTAR) {
+        std::cout << "WARNING: Only the A* method is currently implemented." << std::endl;
+        std::cout << "  Defaulting method to A*." << std::endl;
+        config.method = PlannerMethod::ASTAR;
+    }
+
     if (config.mapType == MapType::STATIC) {
         if (input["map"]) {
-            config.map = input["map"].as<std::vector<int>>();
+            config.map = input["map"].as<std::vector<uint8_t>>();
         } else {
             std::cout << "Static map requested but map not given" << std::endl;
             exit(1);

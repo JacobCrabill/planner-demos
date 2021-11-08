@@ -20,6 +20,8 @@ void SetNoiseSeed(int seed);
 double GetNoise(double nx, double ny);
 #endif
 
+float SimpleRand(int x, int y);
+
 enum PlannerMethod
 {
     ASTAR = 0,
@@ -39,7 +41,7 @@ struct Config
 {
     std::string fConfig;
     olc::vi2d dims;
-    std::vector<int> map;
+    std::vector<uint8_t> map;
     std::vector<float> terrainWeights;
     PlannerMethod method;
     MapType mapType;
