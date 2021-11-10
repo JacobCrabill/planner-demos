@@ -222,7 +222,7 @@ void GameMap::GenerateMap()
      * - Create/Delete tiles as the map scrolls
      *   - Tiles will no longer be in a flattened 2D array; will need to push/pop tiles
      *     from a generic container and use an index map to look up a row,col
-     * - Cache previously-generated sprite data (up to some limit...?)
+     * - (WIP) Cache previously-generated sprite data (up to some limit...?)
      *   - Specifically, map the layers/BCs to a pre-generated sprite, and reuse that
      *     for any other tiles that have the same layer BCs
      * - Optimize the sprite generation...
@@ -240,7 +240,7 @@ void GameMap::GenerateMap()
     texCache.Setup(tileSet);
 
     // Load / Create the map definition
-    
+
     int32_t nx = config.dims.x;
     int32_t ny = config.dims.y;
     int32_t n_tiles = nx * ny;
@@ -262,7 +262,10 @@ void GameMap::GenerateMap()
             }
 
             // Normalize the total amount to 1
-            float sum = std::reduce(config.terrainWeights.begin(), config.terrainWeights.end());
+            float sum = 0;
+            for (auto w : config.terrainWeights) {
+                sum += w;
+            }
             for (auto &w : config.terrainWeights) {
                 w /= sum;
             }
