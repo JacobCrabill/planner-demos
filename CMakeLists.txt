@@ -7,6 +7,16 @@ project(PlannerDemo VERSION 0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
+    if(${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 8.1)
+        message("c++ compiler is: ${CMAKE_CXX_COMPILER_ID}")
+        message("c++ compiler version is: ${CMAKE_CXX_COMPILER_VERSION}")
+        add_definitions(-DFORCE_EXPERIMENTAL_FS)
+    endif()
+else()
+    message(WARNING "Non-GNU compilers not supported - compile at your own risk.")
+endif()
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -39,6 +49,9 @@ add_executable(planner-demo
 )
 
 # Build 3rd-party modules as static libraries
+set(YAML_CPP_BUILD_CONTRIB OFF CACHE BOOL "Turn off extra stuff" FORCE)
+set(YAML_CPP_BUILD_TOOLS   OFF CACHE BOOL "Turn off extra stuff" FORCE)
+set(YAML_CPP_BUILD_TESTS   OFF CACHE BOOL "Turn off extra stuff" FORCE)
 add_subdirectory(3rdparty/yaml-cpp)
 if(ENABLE_LIBNOISE)
     add_subdirectory(3rdparty/libnoise)
