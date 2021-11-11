@@ -59,6 +59,7 @@ private:
     float pathCost {0.f};
     bool isGoalSet {false};
     bool havePath {false};
+    bool gamePaused {false};
 
     const olc::vf2d noscale = {1.f, 1.f};
 

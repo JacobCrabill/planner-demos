@@ -8,8 +8,6 @@
 
 #include "main.hpp"
 
-bool gamePaused = false;
-
 bool AstarDemo::OnUserCreate()
 {
     PROFILE_FUNC();
@@ -242,7 +240,7 @@ void AstarDemo::PrintOverlay()
     ss << ", Effort: " << gameMap.GetEffortAt(mTileIJ.x, mTileIJ.y);
     ss << std::endl << std::endl;
     ss << "Path Cost:   " << pathCost;
-    DrawStringDecal({5, ScreenHeight() - 9*8-4}, ss.str());
+    DrawStringDecal({5, (float)ScreenHeight() - 9*8-4}, ss.str());
 
     // Second status in top-left: PAUSED indicator + keys pressed
     if (gamePaused) {

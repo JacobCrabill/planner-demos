@@ -5,7 +5,7 @@ dims:
   x: 150
   y: 150
 noiseSeed: 401
-noiseScale: 10
+noiseScale: 50
 terrainWeights:
   - 3   # water
   - 3   # grass
