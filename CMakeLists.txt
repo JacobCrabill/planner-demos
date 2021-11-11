@@ -21,7 +21,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wextra -Wconversion -Wno-unknown-pragmas")
+set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wextra -Wno-conversion -Wno-unknown-pragmas")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
@@ -46,6 +46,7 @@ add_executable(planner-demo
     src/gamemap.cpp
     src/main.cpp
     src/util.cpp
+    src/tileset.cpp
 )
 
 # Build 3rd-party modules as static libraries
