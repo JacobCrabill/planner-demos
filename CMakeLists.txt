@@ -45,6 +45,7 @@ add_executable(planner-demo
     src/astar.cpp
     src/gamemap.cpp
     src/main.cpp
+    src/plannerDemo.cpp
     src/util.cpp
     src/tileset.cpp
 )

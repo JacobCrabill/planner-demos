@@ -2,7 +2,8 @@
  * @File: main.hpp
  * @Author: Jacob Crabill <github.com/JacobCrabill>
  */
-#define OLC_PGE_APPLICATION
+#pragma once
+
 #include "olcPixelGameEngine.h"
 
 #include "astar.hpp"
@@ -10,14 +11,14 @@
 #include "gamemap.hpp"
 
 // Override base class with your custom functionality
-class AstarDemo : public olc::PixelGameEngine
+class PlannerDemo : public olc::PixelGameEngine
 {
 public:
-    AstarDemo(const Config& _config) :
+    PlannerDemo(const Config& _config) :
         gameMap(_config)
     {
         // Name your application
-        sAppName = "AstarDemo";
+        sAppName = "PlannerDemo";
         config = _config;
     }
 
