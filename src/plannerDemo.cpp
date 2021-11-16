@@ -38,7 +38,7 @@ bool PlannerDemo::OnUserCreate()
     EnableLayer(layerBG, true);
     // Note: We should consider disabling "clear-on-draw" when not updating the background
     // so we only have to draw the background when we need to
-    EnableLayerClear(layerBG, true);
+    // EnableLayerClear(layerBG, true);
 
     SetDrawTarget(layerGame);
     Clear(olc::BLANK);

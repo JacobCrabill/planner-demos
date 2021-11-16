@@ -23,6 +23,13 @@ enum TERRAIN_TYPE
   TYPE_COUNT
 };
 
+struct MapChunk
+{
+    olc::vi2d coord {0, 0};
+    olc::vi2d dims {16, 16};
+    std::vector<Tile> tiles;
+};
+
 //! Class to load the desired map terrain, a tileset, and display the map
 class GameMap
 {
@@ -48,17 +55,19 @@ public:
     float GetEffortAt(int idx);
 
 private:
-    std::vector<Tile> map;
+    std::map<olc::vi2d, Tile> map;
 
-    olc::vi2d dims {0, 0};
+    olc::vi2d dims {0, 0}; //!< Dimensions of the overall map. TODO: Use only for static maps.
+    olc::vi2d idxTL {}; //!< Top-left tile coordinate on the screen
+    olc::vi2d idxBR {}; //!< Btm-right tile coordinate on the screen
     bool mapLoaded {false};
     Config config;
 
     olc::PixelGameEngine* pge {nullptr};
 
     static constexpr uint8_t N_LAYERS = 5;
-    
-    /// NOTE: This could be simpler, but I'm leaving placeholders/reminders 
+
+    /// NOTE: This could be simpler, but I'm leaving placeholders/reminders
     /// for swapping out different terrain maps in the future.
     /// Needs more thought.
 
@@ -68,6 +77,7 @@ private:
     /// (So e.g. dirt can be layered on top of pavers, or vice-versa)    static constexpr uint8_t N_LAYERS = 5;
     const uint8_t layers[N_LAYERS] {WATER, GRASS, DIRT, GRAVEL, PAVERS};
     TileSet* tileSet {nullptr};
+    std::vector<float> tRangeSums;
 
     const std::map<TERRAIN_TYPE, float> teffort {
         {GRASS, 3.f}, {WATER, -1.f}, {DIRT, 10.f}, {GRAVEL, 20.f}, {PAVERS, 1.f}

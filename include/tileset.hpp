@@ -3,6 +3,7 @@
  * @Author: Jacob Crabill <github.com/JacobCrabill>
  *
  * @Description:
+ *     Implements a texture atlas interface for the rest of the game
  */
 #pragma once
 

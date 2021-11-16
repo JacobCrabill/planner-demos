@@ -10,7 +10,7 @@
 
 static std::array<olc::Pixel, 18> COLORS {
     olc::VERY_DARK_GREY, olc::VERY_DARK_RED, olc::VERY_DARK_YELLOW,
-        olc::VERY_DARK_CYAN, olc::VERY_DARK_BLUE,
+    olc::VERY_DARK_CYAN, olc::VERY_DARK_BLUE,
     olc::DARK_GREY, olc::DARK_RED, olc::DARK_YELLOW, olc::DARK_CYAN, olc::DARK_BLUE,
     olc::GREY, olc::RED, olc::YELLOW, olc::CYAN, olc::BLUE,
     olc::WHITE, olc::BLACK, olc::BLANK
