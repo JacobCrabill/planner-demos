@@ -49,19 +49,31 @@ public:
 
     void Draw(const olc::vi2d& offset);
 
+    uint8_t GetLayerAt(int ix, int iy);
     TERRAIN_TYPE GetTerrainAt(int ix, int iy);
-    TERRAIN_TYPE GetTerrainAt(int idx);
     float GetEffortAt(int ix, int iy);
-    float GetEffortAt(int idx);
 
 private:
     std::map<olc::vi2d, Tile> map;
+    std::map<olc::vi2d, MapChunk> chunks;
+    const olc::vi2d ChunkSize {16, 16};
+    olc::vi2d chidTL; //!< overall top-left index of all active chunks
+    olc::vi2d chidBR; //!< overall bottom-right index of all active chunks
 
     olc::vi2d dims {0, 0}; //!< Dimensions of the overall map. TODO: Use only for static maps.
     olc::vi2d idxTL {}; //!< Top-left tile coordinate on the screen
     olc::vi2d idxBR {}; //!< Btm-right tile coordinate on the screen
-    bool mapLoaded {false};
     Config config;
+
+    /**
+     * @brief Add (prepare) a new chunk of the world for rendering.
+     *
+     * The chunk will be created with a top-left index of 'start'
+     * and x,y extents (in number of tile) of 'dims'
+     */
+    void AddChunk(olc::vi2d start, olc::vi2d dims);
+
+    void RemoveChunk(olc::vi2d start);
 
     olc::PixelGameEngine* pge {nullptr};
 

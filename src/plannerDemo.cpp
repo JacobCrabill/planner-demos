@@ -77,8 +77,8 @@ bool PlannerDemo::OnUserUpdate(float fElapsedTime)
     if (sPressed) viewOffset.y += fElapsedTime * panSpeed;
     if (dPressed) viewOffset.x += fElapsedTime * panSpeed;
 
-    viewOffset.x = std::min(std::max(0.f, viewOffset.x), (float)((config.dims.x - 2) * 32 - ScreenWidth()));
-    viewOffset.y = std::min(std::max(0.f, viewOffset.y), (float)((config.dims.y - 2) * 32 - ScreenHeight()));
+    // viewOffset.x = std::min(std::max(0.f, viewOffset.x), (float)((config.dims.x - 2) * 32 - ScreenWidth()));
+    // viewOffset.y = std::min(std::max(0.f, viewOffset.y), (float)((config.dims.y - 2) * 32 - ScreenHeight()));
 
     DrawBackground();
 
@@ -115,7 +115,7 @@ bool PlannerDemo::OnUserUpdate(float fElapsedTime)
         }
 
         // If the goal tile has been set, display the shortest path
-        
+
         if (isGoalSet && (newStart || newGoal)) {
             havePath = planner->ComputePath(mTileIJ, goalIJ);
             pathCost = planner->GetPathCost();
