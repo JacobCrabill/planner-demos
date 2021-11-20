@@ -31,7 +31,7 @@ struct Tile
     olc::vi2d vTileCoord;           //!< The (i,j) coordinates of this tile within the game map
     olc::vf2d vScreenPos;           //!< The location _of the sprite_ in the screen frame
     float fEffort {0.f};            //!< The effort required to cross this tile
-    uint8_t layer {0};              //!< Which terrain-style layer this tile is    
+    uint8_t layer {0};              //!< Which terrain-style layer this tile is
 };
 
 /**
@@ -59,10 +59,10 @@ public:
 
 private:
 
-    /** 
+    /**
      * Get a random 'plain terrain' tile, allowing us to add some variety to
      * otherwise boring regions.
-     * 
+     *
      * @param rval: Optional random number to use in range [0, 1]
      */
     int GetRandomBaseTile(const float rval = -1.f);
@@ -71,11 +71,11 @@ private:
 
     /**
      * @brief Get the required tile ID for the input topology.
-     * 
+     *
      * @param topo The indices of the 2x2 topo region for one terrain type. The
      *             indices must be sorted.  The ordering is (top-left,
      *             top-right, bottom-right, bottom-left).  Ex: {0,2,3}.
-     * 
+     *
      * We are using an offset grid to allow finer control of the terrain
      * stitching _with our given tileset_
      *
@@ -83,11 +83,11 @@ private:
      * the input map of tile terrain values (the game map) such that each
      * displayed tile determines its final value from the 'corner' between 4
      * input values.
-     * 
+     *
      * For reference, all of the possible combinations of the 4-cell region
      * used to build the terrain sprite from are listed below, from the
      * perspective of a terrain type 'X' and some other type(s) 'O'.
-     * 
+     *
      * The way we are actually building this sprite, however, is the following:
      * 1. Start with the just the first terrain layer.
      * 2. Specify the topology as seen by only this layer.
@@ -100,10 +100,10 @@ private:
      *
      *     O X => Topology for X: {1, 2, 3}
      *     X X    Tile Index: Top-Left Cutout (5)
-     * 
+     *
      *     X O => Topology for X: {0, 2, 3}
      *     X X    Tile Index: Top-Right Cutout (4)
-     *   
+     *
      *     X X => Topology for X: {0, 1, 3}
      *     X O    Tile Index: Bottom-Right Cutout (1)
      *
@@ -164,7 +164,8 @@ private:
 
     olc::Sprite* tileset {nullptr};   //!< The entire tileset for all terrain types
     std::vector<std::vector<olc::Sprite*>> tiles;  //!< Each individual tile for all terrain types
-    
+    olc::Renderable blankTile;
+
     std::map<std::array<uint8_t, 4>, olc::Decal*> texCache; //!< Cache of all previously-generated tile textures
     std::vector<std::map<int, olc::Decal*>> baseTiles; // One for each terrain type
 

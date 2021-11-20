@@ -60,9 +60,8 @@ private:
 
     GameMap* map {nullptr};
 
-    olc::vi2d dims {0, 0};
-    std::vector<Node> nodes; /// TODO: Use one of my ndarray/matrix headers
-    
+    std::vector<Node> nodes;
+
     bool goalReached {false};
     float path_cost {-1.f};
 

@@ -88,6 +88,13 @@ TileSet::TileSet(olc::PixelGameEngine* _pge, std::string fname, const uint8_t* t
             baseTiles[L][bt] = new olc::Decal(GetTileAt(L, bt));
         }
     }
+
+    // Add a placeholder for a blank / emptry sprite
+    blankTile.Create(TW, TH);
+    pge->SetDrawTarget(blankTile.Sprite());
+    pge->FillRect({0, 0}, {TW, TH}, olc::BLACK);
+    pge->SetDrawTarget(nullptr);
+    blankTile.UpdateDecal();
 }
 
 TileSet::~TileSet()
@@ -159,12 +166,17 @@ olc::Sprite* TileSet::GetTileAt(uint8_t type, int idx)
 olc::Decal* TileSet::GetTextureFor(const std::array<uint8_t, 4>& bcs, olc::vi2d loc)
 {
     if (IsBaseTile(bcs)) {
+        uint8_t type = bcs[0];
+        if (type > 4) {
+            // Invalid type
+            return blankTile.Decal();
+        }
         // Use a nice, deterministic "random number" to get the "random" tile
         float rval = SimpleRand(loc.x, loc.y);
         int t = GetRandomBaseTile(rval); //GetNoise(50.*ix, 50.*iy));
-        return baseTiles[bcs[0]].at(t);
+        return baseTiles[type].at(t);
     }
-    
+
     if (texCache.count(bcs)) {
         // Note: This should throw an error if we improperly try to get a tile that doesn't exist
         return texCache.at(bcs);
@@ -203,7 +215,7 @@ olc::Sprite* TileSet::CreateSpriteFromBCs(const std::array<uint8_t, 4>& bcs)
     // Returns a sprite created by layering the appropriate terrain types into
     // a single sprite, in order
     PROFILE_FUNC();
-    
+
     // Create our mapping for the multi-layer tile generation
     std::array<std::vector<uint8_t>, N_LAYERS> laymap;
     for (uint8_t L = 0; L < N_LAYERS; L++) {
@@ -214,7 +226,7 @@ olc::Sprite* TileSet::CreateSpriteFromBCs(const std::array<uint8_t, 4>& bcs)
             }
         }
     }
-  
+
     // For each available layer, map its list of indices
     // to the matching tile index from its tileset
     // Default to -1 if that layer is unused
@@ -229,7 +241,7 @@ olc::Sprite* TileSet::CreateSpriteFromBCs(const std::array<uint8_t, 4>& bcs)
 
     for (auto& t : tIdx) {
         // Add some spice - randomize all the 'plain' tiles
-        /// TODO: This will have to be changed once we start adding/removing tiles dynamically
+        /// TODO: This shouldn't dynamically adding/removing tiles make this weird(?)
         if (t == GetBaseIdx()) {
             t = GetRandomBaseTile();
         }

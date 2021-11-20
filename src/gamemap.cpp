@@ -29,11 +29,11 @@ void GameMap::GenerateMap()
      *
      * In order to scale to an "infinite" world, we must change how we do things:
      * - **(DONE)** Display only the sprites within the screen area
-     * - Generate only the sprites we need to display
-     * - Create/Delete tiles as the map scrolls
+     * - **(DONE)** Generate only the sprites we need to display
+     * - **(DONE)** Create/Delete tiles as the map scrolls
      *   - Tiles will no longer be in a flattened 2D array; will need to push/pop tiles
      *     from a generic container and use an index map to look up a row,col
-     * - Use chunks of, say, 16x16 or 32x32 tiles and add/delete those as the map scrolls
+     * - **(DONE)** Use chunks of, say, 16x16 or 32x32 tiles and add/delete those as the map scrolls
      * - **(DONE)** Cache previously-generated sprite data (up to some limit...?)
      *   - Specifically, map the layers/BCs to a pre-generated sprite, and reuse that
      *     for any other tiles that have the same layer BCs
@@ -56,8 +56,8 @@ void GameMap::GenerateMap()
     int32_t n_tiles = nx * ny;
     int32_t n_grid = (nx - 1) * (ny - 1);
 
-    dims.x = nx - 1;
-    dims.y = ny - 1;
+    dims.x = nx;
+    dims.y = ny;
 
     std::vector<uint8_t> texmap(n_tiles);
 
@@ -88,17 +88,17 @@ void GameMap::GenerateMap()
 
             /// Experimenting with Perlin noise from libnoise
             SetNoiseSeed(config.noiseSeed);
-            for (int i = 0; i < ny; i++) {
-                for (int j = 0; j < nx; j++) {
-                    TERRAIN_TYPE val = GetTerrainAt(j, i);
+            for (int j = 0; j < ny; j++) {
+                for (int i = 0; i < nx; i++) {
+                    TERRAIN_TYPE val = GetTerrainAt(i, j);
 
-                    texmap[i*nx + j] = (uint8_t)val;
+                    texmap[j*nx + i] = (uint8_t)val;
                 }
             }
 
             olc::vi2d nchunks = {pge->ScreenWidth()/TH/ChunkSize.x + 3, pge->ScreenHeight()/TH/ChunkSize.y + 3};
-            for (int i = -1; i < nchunks.x - 1; i++) {
-                for (int j = -1; j < nchunks.y - 1; j++) {
+            for (int j = -1; j < nchunks.y - 1; j++) {
+                for (int i = -1; i < nchunks.x - 1; i++) {
                     olc::vi2d start = {ChunkSize.x*i, ChunkSize.y*j};
                     if (start.x >= dims.x || start.y >= dims.y)
                         continue;
@@ -128,10 +128,10 @@ void GameMap::GenerateMap()
                 texmap[i] = (uint8_t)std::min(std::max(0, (int)texmap[i]), N_LAYERS - 1);
             }
 
-            for (int i = 0; i < pge->ScreenWidth()/ChunkSize.x + 1; i++) {
-                for (int j = 0; j < pge->ScreenHeight()/ChunkSize.y + 1; j++) {
+            for (int j = 0; j < pge->ScreenHeight()/ChunkSize.y + 1; j++) {
+                for (int i = 0; i < pge->ScreenWidth()/ChunkSize.x + 1; i++) {
                     olc::vi2d start = {ChunkSize.x*i, ChunkSize.y*j};
-                    if (start.x >= dims.x || start.y >= dims.y)
+                    if (start.x > dims.x || start.y > dims.y)
                         continue;
 
                     AddChunk(start, ChunkSize);
@@ -158,10 +158,10 @@ void GameMap::AddChunk(olc::vi2d start, olc::vi2d size)
     chunk.tiles.resize(size.x * size.y);
 
     // First, assign the terrain type to each tile
-    for (int i = 0; i < size.x; i++) {
-        const int ix = start.x + i;
-        for (int j = 0; j < size.y; j++) {
-            const int iy = start.y + j;
+    for (int j = 0; j < size.y; j++) {
+        const int iy = start.y + j;
+        for (int i = 0; i < size.x; i++) {
+            const int ix = start.x + i;
             const uint8_t layer = GetLayerAt(ix, iy);
             const TERRAIN_TYPE tt = (TERRAIN_TYPE)layers[layer];
 
@@ -179,8 +179,8 @@ void GameMap::AddChunk(olc::vi2d start, olc::vi2d size)
     }
 
     // Next, apply the correct texture for each tile
-    for (int i = 0; i < size.x; i++) {
-        for (int j = 0; j < size.y; j++) {
+    for (int j = 0; j < size.y; j++) {
+        for (int i = 0; i < size.x; i++) {
             Tile& tile = chunk.tiles[j*size.x + i];
             const uint8_t myL = tile.layer;
             std::array<uint8_t, 4> bcs = {myL, myL, myL, myL};
@@ -188,10 +188,10 @@ void GameMap::AddChunk(olc::vi2d start, olc::vi2d size)
             const int iy = tile.vTileCoord.y;
 
             // Copy the neighborhood
-            bcs[0] = GetLayerAt(ix, iy);
-            bcs[1] = GetLayerAt(ix + 1, iy);
-            bcs[2] = GetLayerAt(ix + 1, iy + 1);
-            bcs[3] = GetLayerAt(ix, iy + 1);
+            bcs[0] = GetLayerAt(ix - 1, iy - 1);
+            bcs[1] = GetLayerAt(ix, iy - 1);
+            bcs[2] = GetLayerAt(ix, iy);
+            bcs[3] = GetLayerAt(ix - 1, iy);
 
             tile.dTexture = tileSet->GetTextureFor(bcs, tile.vTileCoord);
         }
@@ -207,16 +207,6 @@ void GameMap::RemoveChunk(olc::vi2d start)
 
 uint8_t GameMap::GetLayerAt(int ix, int iy)
 {
-    // for (const auto& entry : chunks) {
-    //     auto& chunk = entry.second;
-    //     if (ix >= chunk.coord.x && ix < chunk.coord.x + chunk.dims.x &&
-    //         iy >= chunk.coord.y && iy < chunk.coord.y + chunk.dims.y) {
-    //             int i = ix - chunk.coord.x;
-    //             int j = iy - chunk.coord.y;
-    //             return chunk.tiles[j*chunk.dims.x + i].layer;
-    //         }
-    // }
-
     // Not in an existing chunk; calculate it, look it up, or
     if (config.mapType == MapType::STATIC) {
         if (ix >= 0 && ix < dims.x && iy >= 0 && iy < dims.y) {
@@ -245,9 +235,17 @@ TERRAIN_TYPE GameMap::GetTerrainAt(int ix, int iy)
 
 float GameMap::GetEffortAt(int ix, int iy)
 {
-    if (!map.count({ix, iy})) return -1.f;
+    for (const auto& entry : chunks) {
+        auto& chunk = entry.second;
+        if (ix >= chunk.coord.x && ix < chunk.coord.x + chunk.dims.x &&
+            iy >= chunk.coord.y && iy < chunk.coord.y + chunk.dims.y) {
+                int i = ix - chunk.coord.x;
+                int j = iy - chunk.coord.y;
+                return chunk.tiles[j*chunk.dims.x + i].fEffort;
+            }
+    }
 
-    return map[{ix, iy}].fEffort;
+    return -1.f;
 }
 
 void GameMap::Draw(const olc::vi2d& offset)
@@ -268,8 +266,8 @@ void GameMap::Draw(const olc::vi2d& offset)
         const olc::vi2d new_chidBR = new_chidTL + ChunkSize * nchunks;
 
         if (new_chidTL != chidTL) {
-            std::cout << "Old chunk extents: " << chidTL << " -> " << chidBR << std::endl;
-            std::cout << "New chunk extents: " << new_chidTL << " -> " << new_chidBR << std::endl;
+            // std::cout << "Old chunk extents: " << chidTL << " -> " << chidBR << std::endl;
+            // std::cout << "New chunk extents: " << new_chidTL << " -> " << new_chidBR << std::endl;
 
             std::set<olc::vi2d> desired_chids;
             for (int i = 0; i < nchunks.x; i++) {

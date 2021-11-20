@@ -47,35 +47,13 @@ std::vector<olc::vi2d> AStar::GetPath()
 {
     if (path_cost > 0)
         return final_path;
-    
+
     return {};
 }
 
 void AStar::SetTerrainMap(GameMap& _map)
 {
     map = &_map;
-
-    /// TODO: / HACK / NOTE: 
-    //  We have an extra row+col of terrain nodes
-    //  in order to fully fill the screen given how
-    //  our map is generated
-    dims = map->GetDims();
-    dims.x -= 1;
-    dims.y -= 1;
-
-    // Construct our local copy of the map in a format suitable for the algo.
-    nodes.resize(dims.x * dims.y);
-
-    int cidx = 0;
-    for (auto& node : nodes) {
-        const int i = cidx % dims.x;
-        const int j = cidx / dims.x;
-        node.loc = {i, j};
-        node.idx = cidx;
-        node.effort = map->GetEffortAt(i, j);
-
-        cidx++;
-    }
 }
 
 bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
@@ -83,11 +61,34 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
     PROFILE_FUNC();
 
     path_cost = -1.f;
-    int sInd = start.y * dims.x + start.x;
-    int gInd = goal.y * dims.x + goal.x;
 
-    if (sInd < 0 || (size_t)sInd > nodes.size()) return false;
-    if (gInd < 0 || (size_t)gInd > nodes.size()) return false;
+    // Construct our local copy of the map in a format suitable for the algo.
+    auto extents = map->GetChunkExtents();
+    olc::vi2d dims = extents[1] - extents[0];
+
+    // For now, if the start or goal are outside of the loaded chunk extents, quit
+    if (start < extents[0] || start > extents[1] ||
+        goal < extents[0] || goal > extents[1]) {
+        return false;
+    }
+
+    // Build up a copy of all Nodes (tiles) currently in the game map
+    const olc::vi2d loc_start = start - extents[0];
+    const olc::vi2d loc_goal = goal - extents[0];
+    int sInd = loc_start.x + loc_start.y * dims.x;
+
+    nodes.resize(dims.x * dims.y);
+    int cidx = 0;
+    for (int iy = extents[0].y; iy < extents[1].y; iy++) {
+        for (int ix = extents[0].x; ix < extents[1].x; ix++) {
+            Node& node = nodes[cidx];
+            node.loc = {ix, iy};
+            node.idx = cidx;
+            node.effort = map->GetEffortAt(ix, iy);
+
+            cidx++;
+        }
+    }
 
     // Reset all 'f' and 'g' scores for the A* alg.
     for (auto& node : nodes) {
@@ -114,8 +115,8 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
         pqueue.erase(pqueue.begin());
         open_set.erase(id);
         Node& current = nodes[id];
-        
-        // Check to see if we've reached our destination 
+
+        // Check to see if we've reached our destination
         if (current.loc == goal) {
             /* --- A Path Was Found --- */
             path_cost = current.g;
@@ -178,7 +179,8 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
             const int nidx = neighbors[n];
             const int ni = nidx % dims.x;
             const int nj = nidx / dims.x;
-            if (ni < 0 || ni >= dims.x || nj < 0 || nj >= dims.y || map->GetEffortAt(ni, nj) < 0) {
+            olc::vi2d n_loc = olc::vi2d({ni,nj}) + extents[0];
+            if (ni < 0 || ni >= dims.x || nj < 0 || nj >= dims.y || map->GetEffortAt(n_loc.x, n_loc.y) < 0) {
                 continue;
             }
 
@@ -191,7 +193,7 @@ bool AStar::ComputePath(olc::vi2d start, olc::vi2d goal)
                 tree[nidx] = current.idx;
                 neighbor.g = tmp_g;
                 neighbor.f = tmp_g + Hval(neighbor.loc, goal);
-                const int idx = neighbor.loc.x + neighbor.loc.y * dims.x;
+                const int idx = neighbor.idx;
 
                 if (open_set.count(idx) == 0) {
                     // Insert the neighbor into our set of spots to check

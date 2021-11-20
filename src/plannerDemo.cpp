@@ -91,6 +91,8 @@ bool PlannerDemo::OnUserUpdate(float fElapsedTime)
 
     if (!gamePaused) {
 
+        // havePath = planner->ComputePath({3,8}, {5,10});
+
         bool newStart = false;
         if (mTileIJ != startIJ) {
             newStart = true;
