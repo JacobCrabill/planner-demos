@@ -18,6 +18,7 @@ set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wextra -Wconversion -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O2")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
+include_directories(${LibNoise_SOURCE_DIR}/include)
 include_directories(${LibNoise_SOURCE_DIR}/include/noise/)
 include_directories(${LibNoise_SOURCE_DIR}/include/noise/model)
 include_directories(${LibNoise_SOURCE_DIR}/include/noise/module)

@@ -20,7 +20,7 @@
 // off every 'zig'.)
 //
 
-#include "../misc.h"
+#include "noise/misc.h"
 #include "min.h"
 
 using namespace noise::module;

@@ -21,7 +21,7 @@
 //
 
 #include "blend.h"
-#include "../interp.h"
+#include "noise/interp.h"
 
 using namespace noise::module;
 

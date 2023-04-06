@@ -20,7 +20,7 @@
 // off every 'zig'.)
 //
 
-#include "../mathconsts.h"
+#include "noise/mathconsts.h"
 #include "rotatepoint.h"
 
 using namespace noise::module;
