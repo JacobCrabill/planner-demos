@@ -10,10 +10,14 @@ const CxxArgs = &[_][]const u8{"-std=c++17"};
 pub fn build(b: *std.build.Builder) !void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    const mode = b.standardOptimizeOption(.{});
+    const target = b.standardTargetOptions(.{});
 
-    const exe = b.addExecutable("planner-demo", null);
-    exe.setBuildMode(mode);
+    const exe = b.addExecutable(.{
+        .name = "planner-demo",
+        .optimize = mode,
+        .target = target,
+    });
 
     // Add this app's sources
     try addSourceFilesFrom(b, exe, "src/");
@@ -38,7 +42,12 @@ pub fn build(b: *std.build.Builder) !void {
     exe.linkSystemLibrary("GL");
     exe.linkSystemLibrary("pthread");
     exe.linkSystemLibrary("png");
-    exe.install();
+    b.installArtifact(exe);
+
+    // Run the application
+    const run = b.step("run", "Run the application");
+    const runner = b.addRunArtifact(exe);
+    run.dependOn(&runner.step);
 }
 
 // Add all .cpp files from the given path
