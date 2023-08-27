@@ -4,7 +4,7 @@
 ## Background
 I needed a fun C++ coding project; I wanted to learn simple arcade-style graphics; and I wanted a framework to try out different path-planning algorithms.  This is the resultant WIP.
 
-### Graphics / Game Enging
+### Graphics / Game Engine
 I'm using the [olcPixelGameEngine](https://github.com/OneLoneCoder/olcPixelGameEngine) from OneLoneCoder, a really fantastic single-header, cross-platform game engine that supports 2D graphics, user input, and is based on OpenGL to support GPU accleration.
 
 ## To Build:
